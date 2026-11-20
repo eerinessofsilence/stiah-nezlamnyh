@@ -24,7 +24,7 @@ const endpoint = __DEV__ ? process.env.EXPO_PUBLIC_ASSISTANT_URL : undefined;
 const onlineEndpoint = endpoint && (endpoint.startsWith('https://') ||
   /^http:\/\/(localhost|127\.0\.0\.1):\d+\/api\/assistant$/.test(endpoint)) ? endpoint : undefined;
 
-type Turn = { id: number; question: string; answers: AnswerChoice[]; source: 'model' | 'catalogue' };
+type Turn = { id: number; question: string; answers: AnswerChoice[] };
 
 export default function AssistantScreen() {
   const colors = useGuideColors();
@@ -65,7 +65,6 @@ export default function AssistantScreen() {
     Keyboard.dismiss();
     const context = previous.current;
     let answers = localAnswers(services, trimmed, context);
-    let source: Turn['source'] = 'catalogue';
     if (online && onlineEndpoint && !offline) {
       setLoading(true);
       const controller = new AbortController();
@@ -81,7 +80,6 @@ export default function AssistantScreen() {
         const choices = parseAiAnswers(services, (await response.json()).answers);
         if (choices.length) {
           answers = choices;
-          source = 'model';
         }
       } catch {
         // The built-in catalogue remains available when the server cannot answer.
@@ -94,7 +92,7 @@ export default function AssistantScreen() {
     previous.current = answers.length === 1 ? answers[0] : null;
     const id = nextId.current++;
     scrollToTurn.current = id;
-    setTurns(history => [...history, { id, question: trimmed, answers, source }]);
+    setTurns(history => [...history, { id, question: trimmed, answers }]);
     AccessibilityInfo.announceForAccessibility(answers.length > 1 ? 'Уточніть запит' : answers.length ? 'Відповідь готова' : 'Відповіді не знайдено');
   }
 
@@ -136,7 +134,6 @@ export default function AssistantScreen() {
           <GuideIcon name={{ ios: 'paperplane.fill', android: 'send' }} color={canSend ? colors.onFeature : colors.muted} size={20} />
         </Pressable>
       </View>
-      <GuideText type="meta" tone="muted">Не додавайте ПІБ, номери документів чи медичні дані.</GuideText>
     </View>
   );
 
@@ -221,9 +218,6 @@ function AssistantAnswer({ turn, onChoose }: { turn: Turn; onChoose: (choice: An
   const local = service.id === 'escort' && findContacts(localContacts, turn.question)[0];
   return (
     <GuidePanel>
-      <GuideText type="meta" tone="muted">{turn.source === 'model'
-        ? 'Розділ підібрано моделлю · текст із гіда'
-        : 'Відповідь із вбудованого гіда'}</GuideText>
       <GuideText type="section">{local ? local.title : section?.title ?? service.title}</GuideText>
       {local ? <>
         <GuideText>{local.description}</GuideText>
@@ -256,8 +250,8 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: guideContentInset },
   mode: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   modeText: { flex: 1 },
-  composer: { width: '100%', maxWidth: guideContentMaxWidth - 2 * guideContentInset, alignSelf: 'center', gap: 6, marginBottom: 4 },
+  composer: { width: '100%', maxWidth: guideContentMaxWidth - 2 * guideContentInset, alignSelf: 'center', marginBottom: 12 },
   composerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, borderWidth: 1, padding: 4 },
-  input: { flex: 1, minHeight: 44, paddingHorizontal: 8, paddingVertical: 8, includeFontPadding: false, textAlignVertical: 'center' },
-  send: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  input: { flex: 1, alignSelf: 'stretch', minHeight: 52, paddingHorizontal: 8, paddingVertical: 0, includeFontPadding: false, textAlignVertical: 'center' },
+  send: { width: 52, height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

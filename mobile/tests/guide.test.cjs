@@ -1,8 +1,19 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { services, preparation, sources, contacts, localContacts, featured } = require('../src/data/catalog.json');
+const { readProfile } = require('../src/guide-profile.ts');
 const { findContacts, findServices, localAnswers, matchTopics, parseAiAnswers, routeProgressSummary } = require('../src/search.js');
 const { readProgress, toggleProgress } = require('../src/route-progress.ts');
+
+test('onboarding restores local profiles and preserves a previously selected status', () => {
+  const profile = { name: 'Олена', statusId: 'veteran' };
+  assert.equal(readProfile(null, null), null);
+  assert.equal(readProfile(null, 'unknown'), null);
+  assert.deepEqual(readProfile(null, 'military'), { name: '', statusId: 'military' });
+  assert.deepEqual(readProfile(JSON.stringify(profile), 'military'), profile);
+  assert.deepEqual(readProfile('{', 'military'), { name: '', statusId: 'military' });
+  assert.equal(readProfile('{"name":"Олена","statusId":"unknown"}', null), null);
+});
 
 test('catalog search accepts short acronyms, punctuation and Ukrainian apostrophes', () => {
   assert.equal(findServices(services, '  УБД? ')[0].id, 'status');

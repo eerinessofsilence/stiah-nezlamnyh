@@ -32,7 +32,7 @@ export function SearchField({ value, onChange, label = 'Пошук послуг'
         autoCapitalize="none"
         autoCorrect={false}
         maxLength={160}
-        style={[styles.input, { fontFamily: typography.body.fontFamily, fontSize: typography.body.fontSize, color: colors.ink }]}
+        style={[typography.body, styles.input, { color: colors.ink }]}
       />
       {query !== '' && (
         <Pressable

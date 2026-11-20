@@ -4,9 +4,12 @@ import { createContext, type ReactNode, useContext, useRef, useState } from 'rea
 import { Alert } from 'react-native';
 
 import { preparation, services } from './data/catalog';
+import { readProfile, type GuideProfile } from './guide-profile';
 import { readProgress, type RouteProgress, toggleProgress } from './route-progress';
 
 const storageKey = 'nezlamnyi-route-progress-v1';
+const profileKey = 'nezlamnyi-guide-profile-v1';
+const legacyStatusKey = 'nezlamnyi-user-status-v1';
 const serviceIds = new Set(services.map(({ id }) => id));
 const itemIds = new Set(Object.entries(preparation).flatMap(([id, checklist]) => checklist?.items.map(([key]) => `${id}:${key}`) ?? []));
 
@@ -18,7 +21,17 @@ function loadProgress() {
   }
 }
 
+function loadProfile() {
+  try {
+    return readProfile(Storage.getItemSync(profileKey), Storage.getItemSync(legacyStatusKey));
+  } catch {
+    return null;
+  }
+}
+
 const GuideState = createContext<{
+  profile: GuideProfile | null;
+  saveProfile: (profile: GuideProfile) => boolean;
   query: string;
   setQuery: (query: string) => void;
   offline: boolean;
@@ -28,10 +41,23 @@ const GuideState = createContext<{
 } | null>(null);
 
 export function GuideProvider({ children }: { children: ReactNode }) {
+  const [profile, setProfile] = useState(loadProfile);
   const [query, setQuery] = useState('');
   const [progress, setProgress] = useState(loadProgress);
   const current = useRef(progress);
   const network = Network.useNetworkState();
+
+  function saveProfile(next: GuideProfile) {
+    try {
+      Storage.setItemSync(profileKey, JSON.stringify(next));
+      setProfile(next);
+      if (profile?.statusId !== next.statusId) setQuery('');
+      return true;
+    } catch {
+      Alert.alert('Не вдалося зберегти профіль', 'Спробуйте ще раз.');
+      return false;
+    }
+  }
 
   function retryProgress() {
     const loaded = loadProgress();
@@ -54,6 +80,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   }
 
   return <GuideState.Provider value={{
+    profile, saveProfile,
     query, setQuery, offline: network.isConnected === false || network.isInternetReachable === false,
     progress, retryProgress, toggle,
   }}>{children}</GuideState.Provider>;

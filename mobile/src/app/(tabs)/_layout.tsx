@@ -1,12 +1,18 @@
+import { Redirect, usePathname } from 'expo-router';
 import { NativeTabs } from 'expo-router/native-tabs';
 import { Platform } from 'react-native';
 
+import { useGuideState } from '../../guide-state';
 import { useGuideColors } from '../../theme';
 
 export default function TabsLayout() {
   const colors = useGuideColors();
+  const { profile } = useGuideState();
+  const pathname = usePathname();
   const ios = Platform.OS === 'ios';
   const labelSize = ios ? 11 : 12;
+
+  if (!profile && pathname === '/') return <Redirect href="/welcome" />;
 
   return (
     <NativeTabs activityEnabled backBehavior="initialRoute" tintColor={colors.accent}

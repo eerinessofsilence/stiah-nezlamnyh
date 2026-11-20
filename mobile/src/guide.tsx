@@ -22,12 +22,13 @@ export const guideContentMaxWidth = 448;
 // Match the horizontal inset of the floating tab bar on iPhone.
 export const guideContentInset = Platform.OS === 'ios' && !Platform.isPad && hasNativeEdgeEffects ? 20 : 12;
 
-export function GuideScreen({ title, titleAction, titleType = 'title', children, sheet = false, scrollRef, adjustForKeyboard = false, footerHeight = 0 }: {
+export function GuideScreen({ title, titleAction, titleType = 'title', children, sheet = false, showBrand = false, scrollRef, adjustForKeyboard = false, footerHeight = 0 }: {
   title?: string;
   titleAction?: ReactNode;
   titleType?: 'title' | 'sheetTitle';
   children: ReactNode;
   sheet?: boolean;
+  showBrand?: boolean;
   scrollRef?: Ref<ScrollViewInstance>;
   adjustForKeyboard?: boolean;
   footerHeight?: number;
@@ -94,19 +95,19 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
           </View>
         </View>
       )}
-      {!sheet && (
-        <Pressable accessibilityRole="link" accessibilityLabel="Гід: Стяг незламних, на головну"
-          onPress={() => router.navigate('/')} style={styles.brand}>
+      {!sheet && showBrand && (
+        <View style={styles.brand}>
           <Image source={darkMode ? require('../assets/brand-logo-dark.png') : require('../assets/brand-logo.png')}
-            style={styles.brandLogo} accessible={false} />
-        </Pressable>
+            style={styles.brandLogo} accessibilityLabel="Гід: Стяг незламних" />
+        </View>
       )}
       {!sheet && title && (
         <View style={styles.titleRow}>
-        <GuideText type={titleType} style={styles.titleText}>{title}</GuideText>
+          <GuideText type={titleType} style={styles.titleText}>{title}</GuideText>
+          {titleAction}
         </View>
       )}
-      {offline && !sheet && <GuidePanel tone="soft"><GuideText type="support" announcement>Ви офлайн. Довідник доступний, а для зовнішніх сайтів потрібен інтернет.</GuideText></GuidePanel>}
+      {offline && !sheet && activeTab >= 0 && <GuidePanel tone="soft"><GuideText type="support" announcement>Ви офлайн. Довідник доступний, а для зовнішніх сайтів потрібен інтернет.</GuideText></GuidePanel>}
       {children}
     </ScrollView>
   );
@@ -275,7 +276,7 @@ export function GuideButton({ label, variant = 'secondary', icon, tone = 'ink', 
   const colors = useGuideColors();
   const link = variant === 'link';
   const primary = variant === 'primary';
-  const color = primary ? colors.onPrimaryButton : colors[tone];
+  const color = primary ? colors.onPrimaryButton : link ? colors.accent : colors[tone];
 
   return (
     <Pressable
@@ -298,9 +299,9 @@ export function GuideButton({ label, variant = 'secondary', icon, tone = 'ink', 
         row || link ? typography.support : typography.item,
         styles.actionText,
         { color, textAlign: row || link ? 'left' : 'center' },
-        link && styles.linkText,
       ]}>{label}</Text>
       {icon && icon !== icons.phone && <GuideIcon name={icon} color={color} size={16} />}
+      {link && !icon && <GuideIcon name={icons.external} color={color} size={16} />}
     </Pressable>
   );
 }
@@ -367,7 +368,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   sheetTitleRow: { paddingVertical: 8 },
   titleText: { flex: 1 },
-  brand: { minHeight: 70, flexDirection: 'row', alignItems: 'center' },
+  brand: { minHeight: 56, alignItems: 'flex-start', justifyContent: 'center' },
   brandLogo: { width: 227, height: 56, maxWidth: '100%', resizeMode: 'contain' },
   grid: { gap: 8 },
   tilePair: { flexDirection: 'row', gap: 8 },
@@ -384,5 +385,4 @@ const styles = StyleSheet.create({
   actionRow: { borderRadius: 12, justifyContent: 'space-between', paddingHorizontal: 12 },
   actionLink: { minHeight: 44, paddingHorizontal: 0, justifyContent: 'flex-start', borderRadius: 8 },
   actionText: { flexShrink: 1 },
-  linkText: { textDecorationLine: 'underline' },
 });

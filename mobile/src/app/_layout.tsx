@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, type NativeStackNavigationOptions } from 'expo-router';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { useFonts } from 'expo-font';
 import { hideAsync, preventAutoHideAsync } from 'expo-splash-screen';
@@ -27,6 +27,16 @@ function GuideNavigation() {
   const colors = useGuideColors();
   const { darkMode } = useGuideAppearance();
   const theme = darkMode ? DarkTheme : DefaultTheme;
+  const sheetOptions: NativeStackNavigationOptions = {
+    headerShown: false,
+    presentation: 'formSheet',
+    sheetAllowedDetents: [0.9, 1],
+    sheetGrabberVisible: true,
+    sheetCornerRadius: 28,
+    sheetExpandsWhenScrolledToEdge: true,
+    scrollEdgeEffects: { top: 'soft', bottom: 'soft' },
+    contentStyle: { backgroundColor: colors.surface },
+  };
 
   return (
     <ThemeProvider value={{
@@ -36,16 +46,10 @@ function GuideNavigation() {
       <GuideProvider>
         <Stack screenOptions={{ statusBarStyle: darkMode ? 'light' : 'dark' }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false, scrollEdgeEffects: { top: 'hidden', bottom: 'soft' } }} />
-          <Stack.Screen name="service/[id]" options={{
-            headerShown: false,
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.9, 1],
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 28,
-            sheetExpandsWhenScrolledToEdge: true,
-            scrollEdgeEffects: { top: 'soft', bottom: 'soft' },
-            contentStyle: { backgroundColor: colors.surface },
-          }} />
+          <Stack.Screen name="welcome" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="profile" options={sheetOptions} />
+          <Stack.Screen name="service/[id]" options={sheetOptions} />
         </Stack>
       </GuideProvider>
     </ThemeProvider>

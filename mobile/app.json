@@ -2,7 +2,7 @@
   "expo": {
     "name": "Гід: Стяг незламних",
     "slug": "stiah-nezlamnykh",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "scheme": "stiahnezlamnykh",
     "platforms": [
       "ios",
@@ -12,7 +12,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "app.stiahnezlamnykh.guide",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "icon": "./assets/Stiah.icon",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "uk",
@@ -38,12 +38,27 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      ["expo-splash-screen", {
-        "backgroundColor": "#f0f0e6",
-        "image": "./assets/brand.png",
-        "imageWidth": 88,
-        "dark": { "backgroundColor": "#1c2118" }
-      }]
-    ]
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#f0f0e6",
+          "image": "./assets/brand.png",
+          "imageWidth": 88,
+          "dark": {
+            "backgroundColor": "#1c2118"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "ee7e9fdd-a326-44c5-a393-b6a8c7723565"
+      }
+    }
   }
 }
