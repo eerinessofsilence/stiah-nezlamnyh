@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Гід: Стяг незламних",
+    "slug": "stiah-nezlamnykh",
+    "version": "0.1.0",
+    "scheme": "stiahnezlamnykh",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "app.stiahnezlamnykh.guide",
+      "icon": "./assets/Stiah.icon",
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "uk",
+        "CFBundleLocalizations": [
+          "uk"
+        ]
+      }
+    },
+    "android": {
+      "package": "app.stiahnezlamnykh.guide",
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "softwareKeyboardLayoutMode": "resize",
+      "predictiveBackGestureEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png",
+        "backgroundColor": "#f0f0e6"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      ["expo-splash-screen", {
+        "backgroundColor": "#f0f0e6",
+        "image": "./assets/brand.png",
+        "imageWidth": 88,
+        "dark": { "backgroundColor": "#1c2118" }
+      }]
+    ]
+  }
+}
