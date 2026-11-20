@@ -50,13 +50,19 @@
 
 ### App Review Notes
 
-This Ukrainian-language app is an independent reference guide for veterans and their families. It is not affiliated with government agencies and does not provide medical services or process applications. No sign-in, payment, demo account, or server access is required. From Home, search for “УБД”, open a route, and expand “Джерела й перевірка” at the bottom to see official sources. The Services tab includes checklists, and the Contacts tab can search by community. “Помічник” matches questions against the bundled catalogue on-device. “Про гід” contains the privacy policy and support links. The guide and local search work offline. Opening an external website, email app, or dialer is initiated by the user.
+This Ukrainian-language app is an independent reference guide for veterans and their families. It is not affiliated with government agencies and does not provide medical services or process applications. No sign-in, payment, demo account, or server access is required. From Home, search for “УБД”, open a route, and expand “Джерела й перевірка” at the bottom to see official sources. The Services tab includes checklists, and the Contacts tab can search by community.
+
+“Помічник” matches questions against the bundled catalogue on-device. The release build sends no questions or searches to a server or AI provider. The guide and search work offline. Opening an external website, email app, or dialer is initiated by the user. Open “Про гід” → “Політика конфіденційності” for the privacy policy, then choose “English summary”. “Підтримка” opens the support page.
+
+[English privacy summary](https://nezlamnyi.eerinessbusiness.workers.dev/privacy.html#english) · [Support](https://nezlamnyi.eerinessbusiness.workers.dev/support.html)
 
 ## Публічні сторінки та перевірка Release
 
-Після змін у [support.html](../support.html) або [privacy.html](../privacy.html) виконайте `npx wrangler deploy` з кореня проєкту. Відкрийте обидві публічні адреси без входу й перевірте контакт підтримки. Задайте `EXPO_PUBLIC_GUIDE_SITE_URL` як базову HTTPS-адресу в середовищі збирання JS. У фінальній збірці перевірте обидва посилання з «Про гід», перший запуск без мережі, пошук «УБД», «Помічник» і контакти. Решта сценаріїв є в [мобільному README](../mobile/README.md#перевірка-на-пристрої).
+Cloudflare обслуговує [сторінку підтримки](../support.html), [політику конфіденційності](../privacy.html) та їхній [спільний CSS](../store-info.css). Після змін виконайте `npx wrangler deploy` з кореня проєкту. Відкрийте обидві адреси з таблиці без входу й перевірте контакт підтримки, перехід між сторінками та англомовне резюме політики. Для метаданих магазину використовуйте зазначені прямі URL.
 
-Відповіді в App Privacy та Data safety мають відповідати фактичному складу й поведінці збірки. Release використовує локальний каталог і не активує `EXPO_PUBLIC_ASSISTANT_URL`. Перед випуском зі змінами в SDK або мережевій поведінці перевірте зведений Privacy Manifest у Xcode та дозволи Android.
+Під час збирання задайте `EXPO_PUBLIC_GUIDE_SITE_URL=https://nezlamnyi.eerinessbusiness.workers.dev`. У фінальній збірці перевірте обидва посилання з «Про гід», перший запуск без мережі, пошук «УБД», «Помічник» і контакти. Решта сценаріїв є в [мобільному README](../mobile/README.md#перевірка-на-пристрої).
+
+Відповіді в App Privacy та Data safety мають відповідати фактичному складу й поведінці збірки. Політика пояснює, які дані лишаються на пристрої і що обробляється, коли користувач відкриває публічну сторінку чи пише до підтримки. Release використовує локальний каталог і не активує `EXPO_PUBLIC_ASSISTANT_URL`. Якщо змінюються SDK чи мережева поведінка, звірте політику, декларації магазинів, зведений Privacy Manifest у Xcode та дозволи Android. [Вимоги Apple](https://developer.apple.com/app-store/review/guidelines/#privacy) · [Вимоги Google Play](https://support.google.com/googleplay/android-developer/answer/10144311)
 
 ## iOS
 

@@ -1,9 +1,54 @@
 :root {
   color-scheme: light dark;
-  font: 100%/1.6 system-ui, sans-serif;
+  --canvas: #f0f0e6;
+  --surface: #fbfbf6;
+  --ink: #202319;
+  --muted: #59604f;
+  --accent: #566143;
+  --line: #e2e3d8;
+  font: 100%/1.5 system-ui, sans-serif;
 }
-body { margin: 0; background: Canvas; color: CanvasText; }
-main { max-width: 42rem; margin: auto; padding: 2rem 1.25rem; }
-h1, h2 { line-height: 1.2; }
-h2 { margin-top: 2rem; }
-a { text-underline-offset: 0.2em; }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #1c2118;
+    --surface: #282e22;
+    --ink: #f0f2e8;
+    --muted: #bdc6b1;
+    --accent: #c5d5b2;
+    --line: #46513d;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--canvas); color: var(--ink); }
+main { max-inline-size: 44rem; margin-inline: auto; padding: 1.5rem 0.75rem 2rem; }
+header {
+  padding: clamp(1rem, 4vw, 1.5rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+h1, h2, p, ul { margin-block: 0; }
+h1 { font-size: 1.75rem; line-height: 2.125rem; font-weight: 400; letter-spacing: -.025em; }
+h2 { font-size: 1.25rem; line-height: 1.625rem; font-weight: 600; }
+p + p, h2 + p, ul, ul + p { margin-block-start: 0.75rem; }
+ul { padding-inline-start: 1.5rem; }
+li + li { margin-block-start: 0.5rem; }
+section, footer { padding: 1.25rem 0.75rem; }
+section + section, footer { border-block-start: 1px solid var(--line); }
+.brand, .lede, footer { color: var(--muted); }
+.brand { margin-block-end: 0.5rem; font-size: 0.875rem; font-weight: 600; }
+.lede { margin-block-start: 0.75rem; }
+nav { display: flex; flex-wrap: wrap; gap: 0 1rem; margin-block-start: 0.5rem; }
+a { color: var(--accent); text-underline-offset: 0.2em; overflow-wrap: anywhere; }
+a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+nav a, .action { display: inline-flex; align-items: center; min-block-size: 2.75rem; }
+.action {
+  margin-block-start: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+.action:focus-visible { outline-color: var(--accent); }
+footer { font-size: 0.875rem; }
