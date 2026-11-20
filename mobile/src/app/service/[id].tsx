@@ -49,7 +49,7 @@ export default function ServiceScreen() {
             <View style={[styles.number, { backgroundColor: colors.surface }]}>
               <GuideText type="number">{index + 1}</GuideText>
             </View>
-            <GuideText type="support" style={styles.stepCopy}>{step}</GuideText>
+            <GuideText style={styles.stepCopy}>{step}</GuideText>
           </View>
         ))}
       </GuidePanel>
@@ -76,7 +76,7 @@ function SectionCard({ section, checklistFor, initiallyOpen = false }: {
         icon={open ? { ios: 'chevron.up', android: 'expand_less' } : { ios: 'chevron.down', android: 'expand_more' }}
         onPress={() => setOpen(value => !value)} />
       {open && <GuidePanel>
-        {section.paragraphs.map(paragraph => <GuideText key={paragraph} type="support">{paragraph}</GuideText>)}
+        {section.paragraphs.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)}
         <RouteAction action={section.action} />
         {checklistFor && <RouteChecklist id={checklistFor} />}
       </GuidePanel>}

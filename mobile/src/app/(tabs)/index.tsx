@@ -17,7 +17,7 @@ export default function HomeScreen() {
   const results = searching ? findServices(services, query) : featured.flatMap(id => services.filter(service => service.id === id));
 
   return (
-    <GuideScreen title="ЗАСТОСУНОК ДЛЯ ВЕТЕРАНІВ" titleType="sheetTitle" adjustForKeyboard>
+    <GuideScreen title="ЗАСТОСУНОК ДЛЯ ВЕТЕРАНІВ" adjustForKeyboard>
       <GuideText type="support" tone="muted">Та сімей загиблих (померлих) захисників України</GuideText>
       <SearchField />
       {results.length > 0
@@ -40,7 +40,7 @@ export default function HomeScreen() {
         style={({ pressed }) => [styles.hotline, { backgroundColor: pressed ? colors.surfaceMuted : colors.soft }]}>
         <View style={[styles.icon, { backgroundColor: colors.surface }]}><GuideIcon name={icons.phone} size={22} /></View>
         <View style={styles.copy}>
-          <GuideText type="tile" heading>Гаряча лінія для ветеранів</GuideText>
+          <GuideText type="section">Гаряча лінія для ветеранів</GuideText>
           <GuideText type="item">{hotline.phone}</GuideText>
         </View>
       </Pressable>

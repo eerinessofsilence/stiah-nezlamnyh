@@ -31,7 +31,7 @@
 
 У картці Apple збережено контакт і нотатки для App Review. Вхід у застосунок не потрібен. Декларація **Data Not Collected** опублікована. Для збірки вказано **App Uses Non-Exempt Encryption: No**. Після схвалення власник випускає версію вручну. Доступність на Mac з Apple Silicon та Apple Vision Pro вимкнено.
 
-У поточному коді є зміни після архівування збірки `1`, зокрема перемикач «Темна тема» на екрані «Про гід». Щоб включити їх у перший випуск, підготуйте новий Release-архів із більшим номером збірки, перевірте його через TestFlight і виберіть у версії `0.1.0`.
+Поточна версія в коді для iOS — `0.2.0`, збірка `2`. Вона включає зміни після архівування першої збірки, зокрема перемикач «Темна тема» на екрані «Про гід».
 
 У **App Compliance** збережено статус DSA **non-trader**. Запуск лише в Україні. Пункти **Security Assessment** і **AI Generated or Synthetic Content** стосуються материкового Китаю, який не вибрано в доступності.
 
@@ -66,6 +66,14 @@ Cloudflare обслуговує [сторінку підтримки](../support
 
 ## iOS
 
+### Збірка через EAS
+
+З кореня проєкту виконайте команду. Під час першого запуску EAS запропонує прив’язати проєкт Expo й налаштувати підпис та доступ до App Store Connect. Після збирання EAS завантажить збірку в TestFlight. [Автоматичне завантаження через EAS](https://docs.expo.dev/build/automate-submissions/)
+
+```sh
+cd mobile && npx eas-cli@latest build --platform ios --profile testflight --auto-submit
+```
+
 ### Архів і TestFlight
 
 1. Для наступної збірки відкрийте [Styagnezlamnih.xcworkspace](../mobile/ios/Styagnezlamnih.xcworkspace) у Xcode 26.4 або новішому. Виберіть команду Apple Developer для `app.stiahnezlamnykh.guide` у **Signing & Capabilities**. Для повторного завантаження цієї версії збільште номер збірки.
@@ -88,7 +96,7 @@ Cloudflare обслуговує [сторінку підтримки](../support
 
 ### Подання та випуск
 
-1. У [версії 0.1.0](https://appstoreconnect.apple.com/apps/6837277648/distribution/ios/version/inflight) перевірте вибрану збірку і натисніть **Add for Review**. Цей крок створює чернетку подання зі статусом **Ready for Review**.
+1. У [картці версії](https://appstoreconnect.apple.com/apps/6837277648/distribution/ios/version/inflight) звірте її номер із версією вибраної збірки та натисніть **Add for Review**. Цей крок створює чернетку подання зі статусом **Ready for Review**.
 2. Перевірте чернетку та натисніть **Submit for Review**. Далі відстежуйте статус у розділі **App Review**. [Порядок подання Apple](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-an-app/)
 3. Після схвалення дочекайтеся **Pending Developer Release** і запустіть випуск з картки версії.
 

@@ -1,0 +1,23 @@
+{
+  "cli": {
+    "appVersionSource": "local"
+  },
+  "build": {
+    "testflight": {
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_GUIDE_SITE_URL": "https://nezlamnyi.eerinessbusiness.workers.dev"
+      },
+      "ios": {
+        "image": "macos-tahoe-26.4-xcode-26.4"
+      }
+    }
+  },
+  "submit": {
+    "testflight": {
+      "ios": {
+        "ascAppId": "6837277648"
+      }
+    }
+  }
+}

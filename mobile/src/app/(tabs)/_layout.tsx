@@ -12,7 +12,7 @@ export default function TabsLayout() {
     <NativeTabs activityEnabled backBehavior="initialRoute" tintColor={colors.accent}
       backgroundColor={ios ? undefined : colors.surface}
       labelStyle={{
-        default: { fontSize: labelSize, fontWeight: '600' },
+        default: { fontSize: labelSize, fontWeight: ios ? '600' : '700' },
         selected: { fontSize: labelSize, fontWeight: '700' },
       }}
       labelVisibilityMode="labeled" minimizeBehavior="never">

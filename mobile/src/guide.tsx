@@ -16,6 +16,7 @@ import { useGuideAppearance, useGuideColors } from './theme';
 import { typography } from './typography';
 
 const tabRoutes = ['index', 'services', 'assistant', 'contacts', 'menu'];
+const tabSwipeDirectionRatio = 1.4;
 const hasNativeEdgeEffects = Platform.OS === 'ios' && Number.parseInt(Platform.Version, 10) >= 26;
 export const guideContentMaxWidth = 448;
 // Match the horizontal inset of the floating tab bar on iPhone.
@@ -39,22 +40,34 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
   const segments = useSegments();
   const routeTab = tabRoutes.findIndex((route) => segments.at(-1) === route);
   const activeTab = routeTab >= 0 ? routeTab : segments.includes('(tabs)') ? 0 : -1;
-  const tabSwipe = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponderCapture: (_, { dx, dy }) => Platform.OS === 'ios' && !sheet && activeTab >= 0 && Math.abs(dx) > 32 && Math.abs(dx) > Math.abs(dy) * 1.4,
-    onPanResponderRelease: (_, { dx }) => {
-      const nextTab = activeTab + (dx < 0 ? 1 : -1);
-      if (Math.abs(dx) > 70 && nextTab >= 0 && nextTab < tabRoutes.length) {
-        router.navigate(`/(tabs)/${tabRoutes[nextTab]}` as never);
-      }
-    },
-  }), [activeTab, router, sheet]);
+  const tabSwipe = useMemo(() => {
+    let verticalDrag = false;
+    return PanResponder.create({
+      onStartShouldSetPanResponderCapture: () => {
+        verticalDrag = false;
+        return false;
+      },
+      onMoveShouldSetPanResponderCapture: (_, { dx, dy }) => {
+        const horizontal = Math.abs(dx);
+        const vertical = Math.abs(dy);
+        verticalDrag ||= vertical > 12 && vertical >= horizontal;
+        return !verticalDrag && horizontal > 32 && horizontal > vertical * tabSwipeDirectionRatio;
+      },
+      onPanResponderRelease: (_, { dx, dy }) => {
+        const nextTab = activeTab + (dx < 0 ? 1 : -1);
+        if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * tabSwipeDirectionRatio &&
+          nextTab >= 0 && nextTab < tabRoutes.length) {
+          router.navigate(`/(tabs)/${tabRoutes[nextTab]}` as never);
+        }
+      },
+    });
+  }, [activeTab, router]);
   const android = Platform.OS === 'android';
   const nativeEdgeEffects = hasNativeEdgeEffects && !sheet;
 
   const scrollView = (
     <ScrollView
       ref={scrollRef}
-      {...tabSwipe.panHandlers}
       style={{ flex: 1, backgroundColor: sheet ? colors.surface : colors.canvas }}
       contentInsetAdjustmentBehavior={sheet ? 'automatic' : 'always'}
       automaticallyAdjustKeyboardInsets={adjustForKeyboard}
@@ -90,7 +103,7 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
       )}
       {!sheet && title && (
         <View style={styles.titleRow}>
-          <GuideText type={titleType} style={styles.titleText}>{title}</GuideText>
+        <GuideText type={titleType} style={styles.titleText}>{title}</GuideText>
         </View>
       )}
       {offline && !sheet && <GuidePanel tone="soft"><GuideText type="support" announcement>Ви офлайн. Довідник доступний, а для зовнішніх сайтів потрібен інтернет.</GuideText></GuidePanel>}
@@ -107,8 +120,10 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
     );
   }
 
+  // ScrollView overrides the responder callback that resets gesture state on touch start.
   return (
-    <View style={{ flex: 1 }}>
+    <View {...(Platform.OS === 'ios' && !sheet && activeTab >= 0 ? tabSwipe.panHandlers : undefined)}
+      style={{ flex: 1 }}>
       {nativeEdgeEffects ? (
         <ScrollViewMarker style={styles.edgeScroll} scrollEdgeEffects={{ top: 'hidden', bottom: 'soft' }}>
           {scrollView}
@@ -279,11 +294,11 @@ export function GuideButton({ label, variant = 'secondary', icon, tone = 'ink', 
       ]}
     >
       {icon && icon === icons.phone && <GuideIcon name={icon} color={color} />}
-      <Text style={[
+        <Text style={[
         row || link ? typography.support : typography.item,
         styles.actionText,
         { color, textAlign: row || link ? 'left' : 'center' },
-        link ? styles.linkText : styles.buttonText,
+        link && styles.linkText,
       ]}>{label}</Text>
       {icon && icon !== icons.phone && <GuideIcon name={icon} color={color} size={16} />}
     </Pressable>
@@ -369,6 +384,5 @@ const styles = StyleSheet.create({
   actionRow: { borderRadius: 12, justifyContent: 'space-between', paddingHorizontal: 12 },
   actionLink: { minHeight: 44, paddingHorizontal: 0, justifyContent: 'flex-start', borderRadius: 8 },
   actionText: { flexShrink: 1 },
-  buttonText: { fontFamily: 'System', fontWeight: '600' },
-  linkText: { fontFamily: 'System', textDecorationLine: 'underline' },
+  linkText: { textDecorationLine: 'underline' },
 });

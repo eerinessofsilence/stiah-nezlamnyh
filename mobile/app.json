@@ -2,7 +2,7 @@
   "expo": {
     "name": "Гід: Стяг незламних",
     "slug": "stiah-nezlamnykh",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "scheme": "stiahnezlamnykh",
     "platforms": [
       "ios",
@@ -12,6 +12,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "app.stiahnezlamnykh.guide",
+      "buildNumber": "2",
       "icon": "./assets/Stiah.icon",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "uk",

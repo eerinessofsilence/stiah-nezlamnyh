@@ -21,12 +21,12 @@ export default function MenuScreen() {
         <Switch accessibilityLabel="Темна тема" value={darkMode} onValueChange={setDarkMode} />
       </GuidePanel>
       <GuidePanel tone="soft">
-        <GuideText type="item" heading>Як користуватися</GuideText>
+        <GuideText type="section">Як користуватися</GuideText>
         <GuideText type="support">Маршрути та контакти можна читати офлайн. Для дзвінків, заяв і запису використовуйте вказані установи та сервіси.</GuideText>
         <GuideText type="support">Матеріали про здоров’я пояснюють, куди звернутися по допомогу. Гід не є медичним виробом, не діагностує та не лікує. З медичних питань звертайтеся до лікаря.</GuideText>
       </GuidePanel>
       <GuidePanel>
-        <GuideText type="item" heading>Конфіденційність</GuideText>
+        <GuideText type="section">Конфіденційність</GuideText>
         <GuideText type="support">У версії з магазину запитання обробляються на пристрої. Закладки та відмітки зберігаються в застосунку. Коли ви відкриваєте зовнішній сайт, діє його політика конфіденційності.</GuideText>
         {site && <ExternalLink label="Політика конфіденційності" url={site + '/privacy.html'} />}
         {site && <ExternalLink label="Підтримка" url={site + '/support.html'} />}

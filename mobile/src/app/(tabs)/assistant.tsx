@@ -40,6 +40,7 @@ export default function AssistantScreen() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [footerHeight, setFooterHeight] = useState(0);
+  const [composerFocused, setComposerFocused] = useState(false);
   const nextId = useRef(0);
   const scrollToTurn = useRef<number | null>(null);
   const scroll = useRef<ScrollViewInstance>(null);
@@ -111,13 +112,15 @@ export default function AssistantScreen() {
   const canSend = !loading && question.trim().length > 0;
   const composer = (
     <View style={styles.composer}>
-      <View style={[styles.composerRow, { backgroundColor: colors.surface, borderColor: colors.lineStrong }]}>
+      <View style={[styles.composerRow, { backgroundColor: colors.surface, borderColor: composerFocused ? colors.ink : colors.lineStrong }]}>
         <TextInput
           accessibilityLabel="Запитання Характернику"
           placeholder="Напишіть запитання"
           placeholderTextColor={colors.muted}
           value={question}
           onChangeText={setQuestion}
+          onFocus={() => setComposerFocused(true)}
+          onBlur={() => setComposerFocused(false)}
           autoComplete="off"
           returnKeyType="send"
           onSubmitEditing={({ nativeEvent }) => submit(nativeEvent.text)}
@@ -192,7 +195,7 @@ function AssistantAnswer({ turn, onChoose }: { turn: Turn; onChoose: (choice: An
   if (turn.answers.length > 1) {
     return (
       <GuidePanel>
-        <GuideText type="item" heading>Що саме вас цікавить?</GuideText>
+        <GuideText type="section">Що саме вас цікавить?</GuideText>
         {turn.answers.map(choice => {
           const service = services.find(item => item.id === choice.route);
           const section = service?.sections.find(item => item.id === choice.section);
@@ -221,13 +224,13 @@ function AssistantAnswer({ turn, onChoose }: { turn: Turn; onChoose: (choice: An
       <GuideText type="meta" tone="muted">{turn.source === 'model'
         ? 'Розділ підібрано моделлю · текст із гіда'
         : 'Відповідь із вбудованого гіда'}</GuideText>
-      <GuideText type="item" heading>{local ? local.title : section?.title ?? service.title}</GuideText>
+      <GuideText type="section">{local ? local.title : section?.title ?? service.title}</GuideText>
       {local ? <>
-        <GuideText type="support">{local.description}</GuideText>
-        {local.details && <GuideText type="support">{local.details}</GuideText>}
+        <GuideText>{local.description}</GuideText>
+        {local.details && <GuideText>{local.details}</GuideText>}
         <ExternalLink url={local.dial} label={local.phone} icon={icons.phone} fullWidth />
-      </> : section ? section.paragraphs.map(paragraph => <GuideText type="support" key={paragraph}>{paragraph}</GuideText>)
-        : <GuideText type="support">{service.steps[0]}</GuideText>}
+      </> : section ? section.paragraphs.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)
+        : <GuideText>{service.steps[0]}</GuideText>}
       {!section && !local && <GuideText type="support">Уточніть, яка саме процедура або умова вас цікавить.</GuideText>}
       {!section && !local && service.sections.map(item => <GuideButton key={item.id} label={item.title}
         row icon={icons.arrow} onPress={() => onChoose({ route: service.id, section: item.id })} />)}
@@ -255,6 +258,6 @@ const styles = StyleSheet.create({
   modeText: { flex: 1 },
   composer: { width: '100%', maxWidth: guideContentMaxWidth - 2 * guideContentInset, alignSelf: 'center', gap: 6, marginBottom: 4 },
   composerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, borderWidth: 1, padding: 4 },
-  input: { flex: 1, height: 44, paddingHorizontal: 8, paddingVertical: 0, includeFontPadding: false, textAlignVertical: 'center' },
+  input: { flex: 1, minHeight: 44, paddingHorizontal: 8, paddingVertical: 8, includeFontPadding: false, textAlignVertical: 'center' },
   send: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });
