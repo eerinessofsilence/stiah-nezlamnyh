@@ -24,17 +24,8 @@ const topics = services.map(({id, title, desc, sections}) => {
   });
   return {id, title, desc, entries};
 });
-const publicFiles = new Set([
-  "index.html", "styles.css", "catalog.js", "mobile/src/search.js", "app.js", "assistant.js", "manifest.webmanifest", "sw.js",
-  "privacy.html", "support.html", "store-info.css",
-  "assets/icon.svg", "assets/brand-logo.svg", "assets/icon-192.png", "assets/icon-512.png", "assets/apple-touch-icon.png", "assets/assistant-coast-wide.webp",
-  ...["Regular", "Medium", "Bold"].map(weight => `public/fonts/e-Ukraine-${weight}.woff2`)
-]);
-const mime = {
-  ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8", ".webmanifest": "application/manifest+json",
-  ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp", ".woff2": "font/woff2"
-};
+const publicFiles = new Set(["privacy.html", "support.html", "store-info.css"]);
+const mime = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8"};
 
 function json(response, status, data) {
   response.writeHead(status, {"Content-Type": "application/json", "Cache-Control": "no-store"});
@@ -161,7 +152,7 @@ http.createServer(async (request, response) => {
   try {
     const pathname = new URL(request.url, "http://localhost").pathname;
     if (pathname === "/api/assistant") return await assistant(request, response);
-    const file = pathname === "/" ? "index.html" : pathname.slice(1);
+    const file = pathname.slice(1);
     if (!publicFiles.has(file) || !["GET", "HEAD"].includes(request.method)) {
       return json(response, 404, {error: "Not found"});
     }

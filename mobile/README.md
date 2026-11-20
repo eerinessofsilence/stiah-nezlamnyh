@@ -26,7 +26,7 @@ npm run check
 - На iOS 26+ вкладки використовують системний Liquid Glass. [GuideScreen](src/guide.tsx) додає зверху [матеріал UIKit із плавним переходом](modules/guide-edge-blur/ios/GuideEdgeBlurModule.swift), а знизу на iOS 26+ вмикає системний м’який ефект краю прокручування. Android використовує нативну панель з іконками Material.
 - На екрані «Про гід» є опис, правила користування і блок конфіденційності. Для посилань задайте `EXPO_PUBLIC_GUIDE_SITE_URL=https://nezlamnyi.eerinessbusiness.workers.dev` у `mobile/.env.local` або в середовищі, де збирається JS. Потрібна базова HTTPS-адреса. Застосунок додає `/privacy.html` і `/support.html`. Змінена адреса потрапляє до наступної збірки.
 - У поточному коді «Про гід» має перемикач «Темна тема». [GuideThemeProvider](src/theme.tsx) починає зі світлої теми за відсутності збереженого вибору та зберігає зміну в SQLite. Застосована тема охоплює навігацію, системну панель стану й екрани гіда.
-- Закладки та відмітки залишаються в картках маршрутів і зберігаються в SQLite через [GuideProvider](src/guide-state.tsx). Окремий список «Мої маршрути» є у вебверсії.
+- Закладки та відмітки залишаються в картках маршрутів і зберігаються в SQLite через [GuideProvider](src/guide-state.tsx).
 
 ## Каталог
 
@@ -48,4 +48,4 @@ npm run check
 
 «Характерник» у версіях із магазинів обробляє запитання на пристрої. Вони зберігаються в пам’яті лише протягом сеансу. Онлайн-режим доступний у збірках для розробки за інструкцією в [README проєкту](../README.md). Apple використовує [Privacy Manifest](ios/Styagnezlamnih/PrivacyInfo.xcprivacy) збірки й окрему декларацію App Privacy у картці магазину.
 
-Гарнітура [e-Ukraine](https://thedigital.gov.ua/fonts) Міністерства цифрової трансформації України поширюється за [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Вбудовані файли конвертовано з WOFF2 наявної PWA в OpenType для iOS та Android.
+Гарнітура [e-Ukraine](https://thedigital.gov.ua/fonts) Міністерства цифрової трансформації України поширюється за [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). На iOS та Android застосунок використовує вбудовані файли OpenType.
