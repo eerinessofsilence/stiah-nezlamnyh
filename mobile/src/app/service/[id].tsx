@@ -1,9 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { checkedOn, type GuideSection, preparation, services } from '../../data/catalog';
-import { GuideButton, GuideIcon, GuidePanel, GuideScreen, GuideText, icons, ServiceList } from '../../guide';
+import { GuideButton, GuideIcon, GuidePanel, GuidePressable, GuideScreen, GuideText, icons, ServiceList } from '../../guide';
 import { useGuideState } from '../../guide-state';
 import { BookmarkButton, ProgressUnavailable, RouteAction, RouteChecklist, RouteSources } from '../../route-actions';
 import { useGuideColors } from '../../theme';
@@ -11,20 +11,20 @@ import { useGuideColors } from '../../theme';
 export default function ServiceScreen() {
   const router = useRouter();
   const colors = useGuideColors();
-  const { id, section } = useLocalSearchParams<{ id: string; section?: string }>();
+  const { id, section, returnTo } = useLocalSearchParams<{ id: string; section?: string; returnTo?: string }>();
   const { progress } = useGuideState();
   const service = services.find(item => item.id === id);
   const close = (
-    <Pressable accessibilityRole="button" accessibilityLabel="Закрити маршрут"
-      onPress={() => router.canGoBack() ? router.back() : router.replace('/services')}
-      style={({ pressed }) => [styles.close, { backgroundColor: pressed ? colors.surfaceMuted : colors.soft }]}>
-      <GuideIcon name={icons.close} size={18} />
-    </Pressable>
+    <GuidePressable accessibilityRole="button" accessibilityLabel="Повернутися до послуг"
+      onPress={() => returnTo === '/services-modal' ? router.replace('/services-modal') : router.canGoBack() ? router.back() : router.replace('/services')}
+      style={({ pressed }) => [styles.close, { backgroundColor: pressed ? colors.surfaceMuted : colors.surfaceSoft }]}>
+      <GuideIcon name={icons.back} size={18} />
+    </GuidePressable>
   );
 
   if (!service) {
     return (
-      <GuideScreen title="Маршрут не знайдено" titleAction={close} sheet>
+      <GuideScreen title="Маршрут не знайдено" titleAction={close}>
         <GuideButton label="Перейти до послуг" accessibilityRole="link" onPress={() => router.dismissTo('/services')} />
       </GuideScreen>
     );
@@ -37,12 +37,12 @@ export default function ServiceScreen() {
   const checklistFor = (part: GuideSection) => lists.find(([, list]) => list?.section === part.id)?.[0];
 
   return (
-    <GuideScreen title={service.title} titleAction={close} sheet>
-      <GuideText type="support" tone="muted">{service.desc}</GuideText>
+    <GuideScreen title={service.title} titleAction={close}>
+      <GuideText type="support" tone="foregroundMuted">{service.desc}</GuideText>
       {active && <SectionCard key={id + active.id} section={active} checklistFor={checklistFor(active)} initiallyOpen />}
       <RouteAction action={service.action} primary />
       {progress ? <BookmarkButton id={id} /> : <ProgressUnavailable />}
-      <GuidePanel tone="soft">
+      <GuidePanel tone="surfaceSoft">
         <GuideText heading>З чого почати</GuideText>
         {service.steps.map((step, index) => (
           <View key={step} style={styles.step}>
@@ -58,10 +58,10 @@ export default function ServiceScreen() {
       {service.sections.filter(part => part !== active).map(part => (
         <SectionCard key={id + part.id} section={part} checklistFor={checklistFor(part)} />
       ))}
-      <GuideText type="meta" tone="muted">Редакція від {checkedOn}</GuideText>
-      <RouteSources key={service.id} sourceKeys={references} />
       <GuideText heading>Пов’язані маршрути</GuideText>
       <ServiceList items={service.related.flatMap(relatedId => services.filter(item => item.id === relatedId))} />
+      <RouteSources key={service.id} sourceKeys={references} />
+      <GuideText type="meta" tone="foregroundMuted">Редакція від {checkedOn}</GuideText>
     </GuideScreen>
   );
 }
@@ -73,7 +73,7 @@ function SectionCard({ section, checklistFor, initiallyOpen = false }: {
   return (
     <View style={styles.section}>
       <GuideButton label={section.title} row accessibilityState={{ expanded: open }}
-        icon={open ? { ios: 'chevron.up', android: 'expand_less' } : { ios: 'chevron.down', android: 'expand_more' }}
+        icon={open ? 'caret-up' : 'caret-down'}
         onPress={() => setOpen(value => !value)} />
       {open && <GuidePanel>
         {section.paragraphs.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)}

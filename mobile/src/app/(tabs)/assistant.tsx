@@ -1,15 +1,16 @@
 import { useIsFocused } from 'expo-router/react-navigation';
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, Pressable, type ScrollViewInstance, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { AccessibilityInfo, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, type ScrollViewInstance, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-screens/experimental';
 
 import { preparation, services } from '../../data/catalog';
 import { hotline, localContacts } from '../../data/contacts';
-import { ExternalLink, GuideButton, guideContentInset, guideContentMaxWidth, GuideIcon, GuidePanel, GuideScreen, GuideText, icons, RouteLink } from '../../guide';
+import { ExternalLink, GuideButton, guideContentInset, guideContentMaxWidth, GuideIcon, GuidePanel, GuidePressable, GuideScreen, GuideText, icons, RouteLink } from '../../guide';
 import { useGuideState } from '../../guide-state';
 import { BookmarkButton, ProgressUnavailable, RouteAction, RouteSources } from '../../route-actions';
 import { type AnswerChoice, answerSections, findContacts, localAnswers, parseAiAnswers } from '../../search';
+import { GuideInputFrame, GuideInputPlaceholder, GuideSwitch } from '../../form-controls';
 import { useGuideColors } from '../../theme';
 import { typography } from '../../typography';
 
@@ -110,11 +111,9 @@ export default function AssistantScreen() {
   const canSend = !loading && question.trim().length > 0;
   const composer = (
     <View style={styles.composer}>
-      <View style={[styles.composerRow, { backgroundColor: colors.surface, borderColor: composerFocused ? colors.ink : colors.lineStrong }]}>
-        <TextInput
+      <GuideInputFrame focused={composerFocused} radius={16} style={styles.composerRow}>
+        <View style={styles.inputWrap}><TextInput
           accessibilityLabel="Запитання Характернику"
-          placeholder="Напишіть запитання"
-          placeholderTextColor={colors.muted}
           value={question}
           onChangeText={setQuestion}
           onFocus={() => setComposerFocused(true)}
@@ -123,38 +122,38 @@ export default function AssistantScreen() {
           returnKeyType="send"
           onSubmitEditing={({ nativeEvent }) => submit(nativeEvent.text)}
           maxLength={500}
-          style={[typography.body, styles.input, { color: colors.ink }]}
-        />
-        <Pressable accessibilityRole="button" accessibilityLabel="Надіслати запитання"
+          style={[typography.body, styles.input, { color: colors.foreground }]}
+        />{question === '' && <GuideInputPlaceholder>Напишіть запитання</GuideInputPlaceholder>}</View>
+        <GuidePressable accessibilityRole="button" accessibilityLabel="Надіслати запитання"
           accessibilityState={{ disabled: !canSend }} disabled={!canSend} onPress={() => submit(question)}
           style={({ pressed }) => [styles.send, {
             backgroundColor: canSend ? colors.feature : colors.surfaceMuted,
             opacity: pressed ? 0.75 : 1,
           }]}>
-          <GuideIcon name={{ ios: 'paperplane.fill', android: 'send' }} color={canSend ? colors.onFeature : colors.muted} size={20} />
-        </Pressable>
-      </View>
+          <GuideIcon name="paper-plane-right-fill" color={canSend ? colors.onFeature : colors.foregroundMuted} size={20} />
+        </GuidePressable>
+      </GuideInputFrame>
     </View>
   );
 
   return (
-    <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.canvas }]} behavior={ios ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]} behavior={ios ? 'padding' : undefined}>
       <GuideScreen scrollRef={scroll} footerHeight={ios ? footerHeight : 0}>
         <ImageBackground
           source={require('../../../assets/coast.webp')}
-          style={styles.intro}
+          style={[styles.intro, { backgroundColor: colors.hero }]}
           imageStyle={styles.illustration}
         >
-          <View pointerEvents="none" style={styles.shade} />
-          <GuideText type="title" tone="onFeature">Характерник</GuideText>
-          <GuideText type="support" style={styles.introCopy}>Запитайте про документи, пільги, лікування або допомогу на Одещині.</GuideText>
+          <View pointerEvents="none" style={[styles.shade, { experimental_backgroundImage: colors.heroGradient }]} />
+          <GuideText type="title" tone="onHero">Характерник</GuideText>
+          <GuideText type="support" tone="onHero">Запитайте про документи, пільги, лікування або допомогу на Одещині.</GuideText>
         </ImageBackground>
         {onlineEndpoint && <GuidePanel>
           <View style={styles.mode}>
             <GuideText type="support" style={styles.modeText}>Онлайн-помічник</GuideText>
-            <Switch accessibilityLabel="Онлайн-помічник" value={online} onValueChange={setOnline} disabled={loading} />
+            <GuideSwitch accessibilityLabel="Онлайн-помічник" value={online} onValueChange={setOnline} disabled={loading} />
           </View>
-          <GuideText type="meta" tone="muted">У цьому режимі модель підбирає матеріал гіда. Запитання й тема попередньої відповіді надсилаються на сервер.</GuideText>
+          <GuideText type="meta" tone="foregroundMuted">У цьому режимі модель підбирає матеріал гіда. Запитання й тема попередньої відповіді надсилаються на сервер.</GuideText>
         </GuidePanel>}
         {loading && <GuideText type="support" announcement>Шукаю відповідь…</GuideText>}
         {turns.length === 0 && <View style={styles.prompts}>
@@ -239,10 +238,9 @@ function AssistantAnswer({ turn, onChoose }: { turn: Turn; onChoose: (choice: An
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  intro: { borderRadius: 24, overflow: 'hidden', backgroundColor: '#142f30', paddingHorizontal: 20, paddingBottom: 24, paddingTop: 84, gap: 8 },
+  intro: { borderRadius: 24, overflow: 'hidden', paddingHorizontal: 20, paddingBottom: 24, paddingTop: 84, gap: 8 },
   illustration: { borderRadius: 24 },
-  shade: { ...StyleSheet.absoluteFill, experimental_backgroundImage: 'linear-gradient(to top, #142f30eb, #142f30ae 22%, #142f3038 45%, #142f3000 60%)' },
-  introCopy: { color: '#e0e5d8' },
+  shade: { ...StyleSheet.absoluteFill },
   prompts: { gap: 8 },
   turn: { gap: 8 },
   question: { alignSelf: 'flex-end', borderRadius: 16, maxWidth: '90%', padding: 12 },
@@ -252,6 +250,7 @@ const styles = StyleSheet.create({
   modeText: { flex: 1 },
   composer: { width: '100%', maxWidth: guideContentMaxWidth - 2 * guideContentInset, alignSelf: 'center', marginBottom: 12 },
   composerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, borderWidth: 1, padding: 4 },
-  input: { flex: 1, alignSelf: 'stretch', minHeight: 52, paddingHorizontal: 8, paddingVertical: 0, includeFontPadding: false, textAlignVertical: 'center' },
+  inputWrap: { flex: 1, minWidth: 0, minHeight: 52, justifyContent: 'center' },
+  input: { flex: 1, alignSelf: 'stretch', minHeight: 52, paddingHorizontal: 8, paddingTop: 0, paddingBottom: 10, includeFontPadding: false, textAlignVertical: 'center' },
   send: { width: 52, height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

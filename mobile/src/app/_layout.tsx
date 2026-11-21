@@ -1,26 +1,23 @@
 import { Stack, type NativeStackNavigationOptions } from 'expo-router';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { useFonts } from 'expo-font';
-import { hideAsync, preventAutoHideAsync } from 'expo-splash-screen';
-import { useEffect } from 'react';
 
+import { GuideLaunch } from '../guide-launch';
 import { GuideProvider } from '../guide-state';
 import { GuideThemeProvider, useGuideAppearance, useGuideColors } from '../theme';
 import { guideFonts } from '../typography';
 
 export const unstable_settings = { initialRouteName: '(tabs)' };
-void preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [loaded, error] = useFonts(guideFonts);
+  const ready = loaded || !!error;
 
-  useEffect(() => {
-    if (loaded || error) void hideAsync().catch(() => {});
-  }, [loaded, error]);
-
-  if (!loaded && !error) return null;
-
-  return <GuideThemeProvider><GuideNavigation /></GuideThemeProvider>;
+  return (
+    <GuideThemeProvider>
+      <GuideLaunch ready={ready}>{ready && <GuideNavigation />}</GuideLaunch>
+    </GuideThemeProvider>
+  );
 }
 
 function GuideNavigation() {
@@ -41,7 +38,7 @@ function GuideNavigation() {
   return (
     <ThemeProvider value={{
       ...theme,
-      colors: { ...theme.colors, background: colors.canvas, card: colors.surface, text: colors.ink, primary: colors.accent },
+      colors: { ...theme.colors, background: colors.background, card: colors.surface, text: colors.foreground, primary: colors.accent },
     }}>
       <GuideProvider>
         <Stack screenOptions={{ statusBarStyle: darkMode ? 'light' : 'dark' }}>
@@ -49,7 +46,8 @@ function GuideNavigation() {
           <Stack.Screen name="welcome" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={sheetOptions} />
-          <Stack.Screen name="service/[id]" options={sheetOptions} />
+          <Stack.Screen name="services-modal" options={sheetOptions} />
+          <Stack.Screen name="service/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
         </Stack>
       </GuideProvider>
     </ThemeProvider>

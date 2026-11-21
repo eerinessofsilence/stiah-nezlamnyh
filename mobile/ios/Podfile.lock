@@ -189,8 +189,6 @@ PODS:
     - ExpoModulesCore
   - ExpoStatusBar (58.0.5):
     - ExpoModulesCore
-  - ExpoSymbols (58.0.5):
-    - ExpoModulesCore
   - ExpoSystemUI (58.0.7):
     - ExpoModulesCore
   - EXUpdatesInterface (58.0.1):
@@ -2314,7 +2312,6 @@ DEPENDENCIES:
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoSQLite (from `../node_modules/expo-sqlite/ios`)
   - ExpoStatusBar (from `../node_modules/expo-status-bar/ios`)
-  - ExpoSymbols (from `../node_modules/expo-symbols/ios`)
   - ExpoSystemUI (from `../node_modules/expo-system-ui/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - fast_float (from `build/rndeps-facades/fast_float`)
@@ -2467,8 +2464,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-sqlite/ios"
   ExpoStatusBar:
     :path: "../node_modules/expo-status-bar/ios"
-  ExpoSymbols:
-    :path: "../node_modules/expo-symbols/ios"
   ExpoSystemUI:
     :path: "../node_modules/expo-system-ui/ios"
   EXUpdatesInterface:
@@ -2686,7 +2681,6 @@ SPEC CHECKSUMS:
   ExpoSplashScreen: 5df81b55f086d8acc7a24008537514f5379aa6f9
   ExpoSQLite: 8f41cff76b3499df037e77bf88b9ad97e4794282
   ExpoStatusBar: 38eff05a54229c9a388cb56cef29117b8dc77eb1
-  ExpoSymbols: 43a42871f937948a752814aaf3b0f9f0957a71c6
   ExpoSystemUI: bfbae2409cccd81019ac00a8f57a8724f0534cfd
   EXUpdatesInterface: 1c6a522d0eb0485f4de3fa55d0316288763b3f10
   fast_float: 7c925d1cebf8328d4018d061f49377e9f887e3b4

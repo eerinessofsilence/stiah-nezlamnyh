@@ -27,16 +27,16 @@ export default function ContactsScreen() {
 
 function ContactCard({ contact, featured = false }: { contact: typeof hotline; featured?: boolean }) {
   const source = sources[contact.source];
-  const tone = featured ? 'onFeature' : 'muted';
+  const tone = featured ? 'onFeature' : 'foregroundMuted';
   return (
     <GuidePanel tone={featured ? 'feature' : 'surface'}>
-      <GuideText heading tone={featured ? 'onFeature' : 'ink'}>{contact.title}</GuideText>
+      <GuideText heading tone={featured ? 'onFeature' : 'foreground'}>{contact.title}</GuideText>
       <GuideText type="support" tone={tone}>{contact.description}</GuideText>
       {contact.details && <GuideText type="support" tone={tone}>{contact.details}</GuideText>}
       <ExternalLink url={contact.dial} label={contact.phone} accessibilityLabel={`Зателефонувати: ${contact.phone}`}
-        icon={icons.phone} variant="secondary" tone={featured ? 'onFeature' : 'ink'} fullWidth />
-      {contact.email && <ExternalLink url={`mailto:${contact.email}`} label={contact.email} variant="link" />}
-      {source && <ExternalLink url={source[1]} label="Офіційне джерело" tone={tone} variant="link" icon={icons.external} />}
+        icon={icons.phone} variant="secondary" tone={featured ? 'onFeature' : 'foreground'} fullWidth />
+      {contact.email && <ExternalLink url={`mailto:${contact.email}`} label={contact.email} icon={icons.external} />}
+      {source && <ExternalLink url={source[1]} label="Офіційне джерело" tone={featured ? 'onFeature' : 'accent'} icon={icons.external} />}
     </GuidePanel>
   );
 }

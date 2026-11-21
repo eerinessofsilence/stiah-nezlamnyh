@@ -3,14 +3,14 @@ import { createContext, type ReactNode, useContext, useLayoutEffect, useState } 
 import { Alert, Appearance } from 'react-native';
 
 const light = {
-  canvas: '#f0f0e6',
+  background: '#f0f0e6',
   surface: '#fbfbf6',
   surfaceMuted: '#dfe3d2',
-  soft: '#e4e7d8',
-  line: '#e2e3d8',
-  lineStrong: '#899078',
-  ink: '#202319',
-  muted: '#59604f',
+  surfaceSoft: '#e4e7d8',
+  border: '#e2e3d8',
+  borderStrong: '#7d836b',
+  foreground: '#202319',
+  foregroundMuted: '#59604f',
   accent: '#566143',
   button: '#a0aa8c',
   onAccent: '#20280f',
@@ -18,17 +18,20 @@ const light = {
   onPrimaryButton: '#fbfbf6',
   feature: '#20280f',
   onFeature: '#fbfbf6',
+  hero: '#142f30',
+  onHero: '#e0e5d8',
+  heroGradient: 'linear-gradient(to top, #142f30eb, #142f30ae 22%, #142f3038 45%, #142f3000 60%)',
 };
 
 const dark: typeof light = {
-  canvas: '#1c2118',
+  background: '#1c2118',
   surface: '#282e22',
   surfaceMuted: '#3f4934',
-  soft: '#343e2d',
-  line: '#46513d',
-  lineStrong: '#869276',
-  ink: '#f0f2e8',
-  muted: '#bdc6b1',
+  surfaceSoft: '#343e2d',
+  border: '#46513d',
+  borderStrong: '#8c9879',
+  foreground: '#f0f2e8',
+  foregroundMuted: '#bdc6b1',
   accent: '#c5d5b2',
   button: '#b9c6a3',
   onAccent: '#25331c',
@@ -36,6 +39,9 @@ const dark: typeof light = {
   onPrimaryButton: '#25331c',
   feature: '#11180d',
   onFeature: '#f0f2e8',
+  hero: '#142f30',
+  onHero: '#e0e5d8',
+  heroGradient: 'linear-gradient(to top, #142f30eb, #142f30ae 22%, #142f3038 45%, #142f3000 60%)',
 };
 
 const storageKey = 'nezlamnyi-color-scheme';

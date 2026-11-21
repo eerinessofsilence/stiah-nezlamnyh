@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, type TextInputInstance, View } from 'react-native';
+import { StyleSheet, TextInput, type TextInputInstance, View } from 'react-native';
 
-import { GuideIcon, icons } from './guide';
+import { GuideIcon, GuidePressable, icons } from './guide';
+import { GuideInputFrame, GuideInputPlaceholder } from './form-controls';
 import { useGuideState } from './guide-state';
 import { useGuideColors } from './theme';
 import { typography } from './typography';
@@ -17,40 +18,48 @@ export function SearchField({ value, onChange, label = 'Пошук послуг'
   const [focused, setFocused] = useState(false);
 
   return (
-    <View style={[styles.field, { backgroundColor: colors.surface, borderColor: focused ? colors.ink : colors.lineStrong }]}>
-      <GuideIcon name={{ ios: 'magnifyingglass', android: 'search' }} color={colors.muted} size={20} />
-      <TextInput
-        ref={input}
-        value={query}
-        onChangeText={setQuery}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        accessibilityLabel={label}
-        placeholder={label}
-        placeholderTextColor={colors.muted}
-        returnKeyType="search"
-        autoCapitalize="none"
-        autoCorrect={false}
-        maxLength={160}
-        style={[typography.body, styles.input, { color: colors.ink }]}
-      />
+    <GuideInputFrame focused={focused} radius={8} style={styles.field}>
+      <View style={styles.icon}>
+        <GuideIcon name="magnifying-glass" color={colors.foregroundMuted} size={20} />
+      </View>
+      <View style={styles.inputWrap}>
+        <TextInput
+          ref={input}
+          value={query}
+          onChangeText={setQuery}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          accessibilityLabel={label}
+          accessibilityLanguage="uk"
+          selectionColor={colors.accent}
+          underlineColorAndroid="transparent"
+          returnKeyType="search"
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={160}
+          style={[typography.body, styles.input, { color: colors.foreground }]}
+        />
+        {query === '' && <GuideInputPlaceholder>{label}</GuideInputPlaceholder>}
+      </View>
       {query !== '' && (
-        <Pressable
+        <GuidePressable
           accessibilityRole="button"
           accessibilityLabel="Очистити пошук"
-          android_ripple={{ color: colors.line }}
+          android_ripple={{ color: colors.border }}
           style={styles.clear}
           onPress={() => { setQuery(''); input.current?.focus(); }}
         >
-          <GuideIcon name={icons.close} color={colors.muted} size={16} />
-        </Pressable>
+          <GuideIcon name={icons.close} color={colors.foregroundMuted} size={16} />
+        </GuidePressable>
       )}
-    </View>
+    </GuideInputFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  field: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, paddingLeft: 12, gap: 8 },
-  input: { flex: 1, minWidth: 0, minHeight: 48, paddingVertical: 0, paddingRight: 8, textAlignVertical: 'center', includeFontPadding: false },
-  clear: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  field: { paddingLeft: 12, paddingRight: 4, gap: 8 },
+  icon: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
+  inputWrap: { flex: 1, minWidth: 0, minHeight: 50, justifyContent: 'center' },
+  input: { flex: 1, alignSelf: 'stretch', minWidth: 0, minHeight: 50, paddingTop: 0, paddingBottom: 10, paddingRight: 8, textAlignVertical: 'center', includeFontPadding: false },
+  clear: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, overflow: 'hidden' },
 });

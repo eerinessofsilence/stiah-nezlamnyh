@@ -14,9 +14,9 @@ export default function WelcomeScreen() {
   if (profile) return <Redirect href="/(tabs)" />;
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.canvas }]}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <GuideScreen showBrand title="Вітаємо!">
-        <GuideText tone="muted">Гід для ветеранів, ветеранок і родин загиблих захисників та захисниць України.</GuideText>
+        <GuideText tone="foregroundMuted">Гід для ветеранів, ветеранок і родин загиблих захисників та захисниць України.</GuideText>
         <View style={[styles.poster, { backgroundColor: colors.surfaceMuted }]}>
           <Image source={require('../../assets/welcome.webp')} style={styles.artwork} resizeMode="cover" accessible={false} />
         </View>

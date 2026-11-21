@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { services, preparation, sources, contacts, localContacts, featured } = require('../src/data/catalog.json');
-const { readProfile } = require('../src/guide-profile.ts');
+const { readProfile, statuses } = require('../src/guide-profile.ts');
 const { findContacts, findServices, localAnswers, matchTopics, parseAiAnswers, routeProgressSummary } = require('../src/search.js');
 const { readProgress, toggleProgress } = require('../src/route-progress.ts');
 
@@ -16,6 +16,8 @@ test('onboarding restores local profiles and preserves a previously selected sta
 });
 
 test('catalog search accepts short acronyms, punctuation and Ukrainian apostrophes', () => {
+  assert.equal(findServices(services, 'М')[0].id, 'medical');
+  assert.equal(findServices(services, 'ме')[0].id, 'medical');
   assert.equal(findServices(services, '  УБД? ')[0].id, 'status');
   assert.equal(findServices(services, 'Дія')[0].id, 'status');
   assert.equal(findServices(services, 'БПД')[0].id, 'legal');
@@ -103,6 +105,11 @@ test('urgent scenarios, colloquial search and local contacts are discoverable', 
   assert.equal(findServices(services, 'психолог')[0].id, 'psychology');
   assert.equal(findServices(services, 'поранення')[0].id, 'injury');
   assert.equal(findContacts(localContacts, 'Де фахівець в Ізмаїлі?')[0].source, 'izmailEscort');
+  assert.equal(findContacts(localContacts, 'Ізма')[0].source, 'izmailEscort');
+  assert.equal(findServices(services, 'крісло колісне')[0].id, 'rehab');
+  assert.deepEqual(localAnswers(services, 'Як отримати крісло колісне?', {route: 'status', section: 'ubd'}),
+    [{route: 'rehab', section: 'first-prosthesis'}]);
+  assert(statuses.find(status => status.id === 'disability').serviceIds.includes('msek'));
   assert.equal(findContacts(localContacts, 'релевантного немає').length, 0);
 });
 

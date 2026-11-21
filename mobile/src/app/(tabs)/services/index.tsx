@@ -18,7 +18,7 @@ export default function ServicesScreen() {
       {!query.trim() ? groups.map(group => (
         <CatalogGroup key={group.id} title={group.title} items={services.filter(service => service.group === group.id)} />
       )) : results.length > 0 ? <ServiceList items={results} /> : <>
-        <GuideText type="support" tone="muted" announcement>Нічого не знайшли. Спробуйте коротший запит або запитайте Характерника.</GuideText>
+        <GuideText type="support" tone="foregroundMuted" announcement>Нічого не знайшли. Спробуйте коротший запит або запитайте Характерника.</GuideText>
         <GuideButton label="Запитати Характерника" row icon={icons.arrow}
           onPress={() => { Keyboard.dismiss(); router.navigate('/assistant'); }} />
         <GuideButton label="Переглянути всі послуги" row onPress={() => { Keyboard.dismiss(); setQuery(''); }} />

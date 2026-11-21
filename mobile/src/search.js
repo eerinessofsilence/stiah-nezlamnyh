@@ -38,6 +38,11 @@ const guideSearch = (() => {
   function findServices(services, query) {
     if (!query.trim()) return services;
     const words = queryWords(query);
+    if (!words.length) {
+      const prefixes = tokens(query).filter(word => word.length < 3 && !genericWords.has(word));
+      return services.filter(service => prefixes.some(prefix =>
+        tokens(service.title + " " + service.keys).some(term => term.startsWith(prefix))));
+    }
     return services.map(service => {
       const title = tokens(service.title);
       const keywords = tokens(service.keys);
@@ -61,7 +66,7 @@ const guideSearch = (() => {
     [/загиб|полегл|погиб|годувальник/u, "fallen-family"],
     [/влк|\bввк\b|придатність|резерв\+/iu, "vlk"],
     [/мсек|екопфо|\bопфо\b|експертно[їю] команд|експертна команда|повсякденн/u, "msek"],
-    [/протез|реабілітац|реабилитац|допоміжн.{1,4} засіб|візок/u, "rehab"],
+    [/протез|реабілітац|реабилитац|допоміжн.{1,4} засіб|візок|колісн\p{L}*\s+кріс|кріс\p{L}*\s+колісн/u, "rehab"],
     [/комунал|жкп|жку|льгот|пільг|пенсі|пенси/u, "benefits"],
     [/житл|квартир|оренд|єосел|іпотек/u, "housing"],
     [/поран|ранени|контузі|контузи|госпітал/u, "injury"],
@@ -115,7 +120,7 @@ const guideSearch = (() => {
     if (!words.length) return query.trim() ? [] : contacts;
     return contacts.filter(contact => {
       const localNames = tokens(contact.keys);
-      return words.some(word => localNames.some(name => similar(word, name)));
+      return words.some(word => localNames.some(name => name.startsWith(word) || similar(word, name)));
     });
   }
 

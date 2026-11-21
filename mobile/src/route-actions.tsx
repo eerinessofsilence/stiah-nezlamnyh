@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { preparation, sources } from './data/catalog';
 import { ExternalLink, GuideButton, GuidePanel, GuideText, icons } from './guide';
+import { GuideCheckbox } from './form-controls';
 import { useGuideState } from './guide-state';
 import { useGuideColors } from './theme';
 
@@ -25,16 +26,16 @@ export function RouteSources({ sourceKeys }: { sourceKeys: string[] }) {
 
   return (
     <View style={styles.sources}>
-      <GuideButton label="Джерела й перевірка" tone="muted" row
+      <GuideButton label="Джерела й перевірка" tone="foregroundMuted" row
         accessibilityState={{ expanded }}
-        icon={expanded ? { ios: 'chevron.up', android: 'expand_less' } : { ios: 'chevron.down', android: 'expand_more' }}
+        icon={expanded ? 'caret-up' : 'caret-down'}
         onPress={() => setExpanded(!expanded)} />
       {expanded && sourceKeys.map((key) => {
         const source = sources[key];
         return source && (
           <View key={key}>
-            <ExternalLink url={source[1]} label={source[0]} tone="muted" icon={icons.external} />
-            <GuideText type="meta" tone="muted">Посилання перевірено {source[2]}</GuideText>
+            <ExternalLink url={source[1]} label={source[0]} tone="accent" icon={icons.external} />
+            <GuideText type="meta" tone="foregroundMuted">Посилання перевірено {source[2]}</GuideText>
           </View>
         );
       })}
@@ -61,7 +62,7 @@ export function BookmarkButton({ id }: { id: string }) {
     <GuideButton
       label={saved ? 'Збережено' : 'Зберегти маршрут'}
       row
-      icon={{ ios: saved ? 'bookmark.fill' : 'bookmark', android: saved ? 'bookmark' : 'bookmark_border' }}
+      icon={saved ? 'bookmark-fill' : 'bookmark'}
       accessibilityHint={saved ? 'Прибрати маршрут зі збереженого' : undefined}
       accessibilityState={{ selected: saved, disabled: !progress }}
       disabled={!progress}
@@ -82,26 +83,13 @@ export function RouteChecklist({ id }: { id: string }) {
   });
 
   return (
-    <GuidePanel tone="soft" style={styles.checklist}>
+    <GuidePanel tone="surfaceSoft" style={styles.checklist}>
       <GuideText type="item" heading>Що підготувати</GuideText>
-      <GuideText type="meta" tone="muted">{checklist.note}</GuideText>
-      {progress && <GuideText type="meta" tone="muted" announcement>{items.filter(({ checked }) => checked).length} із {items.length} підготовлено</GuideText>}
+      <GuideText type="meta" tone="foregroundMuted">{checklist.note}</GuideText>
+      {progress && <GuideText type="meta" tone="foregroundMuted" announcement>{items.filter(({ checked }) => checked).length} із {items.length} підготовлено</GuideText>}
       {items.map(({ itemId, label, checked }) => (
-        <Pressable
-          key={itemId}
-          accessibilityRole="checkbox"
-          accessibilityLabel={label}
-          accessibilityState={{ checked, disabled: !progress }}
-          disabled={!progress}
-          onPress={() => toggle('checked', itemId)}
-          android_ripple={{ color: colors.line }}
-          style={[styles.item, { borderTopColor: colors.lineStrong }]}
-        >
-          <View style={[styles.box, { borderColor: colors.accent, backgroundColor: checked ? colors.button : colors.surface }]}>
-            {checked && <Text accessible={false} allowFontScaling={false} style={{ color: colors.onAccent, fontWeight: '700' }}>✓</Text>}
-          </View>
-          <GuideText type="support" style={styles.label}>{label}</GuideText>
-        </Pressable>
+        <GuideCheckbox key={itemId} label={label} value={checked} disabled={!progress}
+          onValueChange={() => toggle('checked', itemId)} style={[styles.item, { borderTopColor: colors.borderStrong }]} />
       ))}
     </GuidePanel>
   );
@@ -111,6 +99,4 @@ const styles = StyleSheet.create({
   sources: { gap: 4 },
   checklist: { gap: 8 },
   item: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
-  box: { width: 24, height: 24, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  label: { flex: 1 },
 });
