@@ -1,5 +1,5 @@
-import { ProfileForm } from '../profile-form';
+import { Redirect } from 'expo-router';
 
 export default function OnboardingScreen() {
-  return <ProfileForm />;
+  return <Redirect href="/(tabs)" />;
 }

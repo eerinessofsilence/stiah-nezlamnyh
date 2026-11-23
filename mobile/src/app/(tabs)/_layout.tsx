@@ -1,11 +1,12 @@
 import { Redirect, Tabs, usePathname } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { NativeTabs } from 'expo-router/native-tabs';
-import { StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 
-import { GuideIcon, GuidePressable, hasNativeHomeTabs } from '../../guide';
+import { GuideStateIcon, GuidePressable, hasNativeHomeTabs } from '../../guide';
 import { guideIconSources } from '../../guide-icons';
 import { useGuideState } from '../../guide-state';
+import { useGuideTransition } from '../../guide-motion';
 import { useGuideColors } from '../../theme';
 import { typography } from '../../typography';
 
@@ -14,15 +15,15 @@ const tabs = [
   { name: 'services', label: 'Послуги', icon: 'squares-four', selectedIcon: 'squares-four-fill' },
   { name: 'assistant', label: 'Помічник', icon: 'assistant', selectedIcon: 'assistant-fill' },
   { name: 'contacts', label: 'Контакти', icon: 'users', selectedIcon: 'users-fill' },
-  { name: 'menu', label: 'Про гід', icon: 'clipboard-text', selectedIcon: 'clipboard-text' },
+  { name: 'menu', label: 'Про гід', icon: 'info', selectedIcon: 'info-fill' },
 ] as const;
 
 export default function TabsLayout() {
   const colors = useGuideColors();
-  const { profile } = useGuideState();
+  const { hasSeenWelcome } = useGuideState();
   const pathname = usePathname();
 
-  if (!profile && pathname === '/') return <Redirect href="/welcome" />;
+  if (!hasSeenWelcome && pathname === '/') return <Redirect href="/welcome" />;
 
   if (!hasNativeHomeTabs) {
     return (
@@ -34,14 +35,14 @@ export default function TabsLayout() {
 
   return (
     <NativeTabs activityEnabled backBehavior="initialRoute" tintColor={colors.accent}
+      labelStyle={{ default: { fontWeight: '500' }, selected: { fontWeight: '600' } }}
       iconColor={{ default: colors.foregroundMuted, selected: colors.accent }}
       minimizeBehavior="never">
       {tabs.map(({ name, label, icon, selectedIcon }) => (
         <NativeTabs.Trigger key={name} name={name} labelVisibilityMode="labeled">
           <NativeTabs.Trigger.Label>{label.replace(' ', '\u00a0')}</NativeTabs.Trigger.Label>
-          {name === 'menu' ? <NativeTabs.Trigger.Icon sf={{ default: 'info.circle', selected: 'info.circle.fill' }} /> :
-            <NativeTabs.Trigger.Icon src={{ default: guideIconSources[icon], selected: guideIconSources[selectedIcon] }}
-              renderingMode="template" />}
+          <NativeTabs.Trigger.Icon src={{ default: guideIconSources[icon], selected: guideIconSources[selectedIcon] }}
+            renderingMode="template" />
         </NativeTabs.Trigger>
       ))}
     </NativeTabs>
@@ -67,7 +68,6 @@ function HomeTabs({ state, emitter, navigateToTab, insets }: BottomTabBarProps) 
         const tab = tabs.find(({ name }) => name === route.name);
         if (!tab) return null;
         const selected = index === state.index;
-        const color = selected ? colors.accent : colors.foregroundMuted;
 
         return (
           <GuidePressable key={route.key} accessibilityRole="tab" accessibilityLabel={tab.label}
@@ -77,17 +77,27 @@ function HomeTabs({ state, emitter, navigateToTab, insets }: BottomTabBarProps) 
               if (!selected && !event.defaultPrevented) navigateToTab(route.key);
             }}
             onLongPress={() => emitter.emit({ type: 'tabLongPress', target: route.key })}
-            style={({ pressed }) => [styles.tab, pressed && { backgroundColor: colors.surfaceMuted }]}>
-            <GuideIcon size={24} name={selected ? tab.selectedIcon : tab.icon} color={color} />
-            <Text maxFontSizeMultiplier={2}
-              style={[selected ? typography.number : typography.meta, styles.label, { color }]}>
-              {tab.label}
-            </Text>
+            style={styles.tab}>
+            <HomeTabLabel tab={tab} selected={selected} />
           </GuidePressable>
         );
       })}
     </View>
   );
+}
+
+function HomeTabLabel({ tab, selected }: { tab: typeof tabs[number]; selected: boolean }) {
+  const colors = useGuideColors();
+  const progress = useGuideTransition(selected ? 1 : 0);
+  const color = progress.interpolate({ inputRange: [0, 1], outputRange: [colors.foregroundMuted, colors.accent] });
+  return <>
+    <GuideStateIcon size={24} name={tab.icon} selectedName={tab.selectedIcon} selected={selected}
+      color={colors.foregroundMuted} selectedColor={colors.accent} />
+    <Animated.Text maxFontSizeMultiplier={2}
+      style={[selected ? typography.number : typography.meta, styles.label, { color, fontWeight: selected ? '600' : '500' }]}>
+      {tab.label}
+    </Animated.Text>
+  </>;
 }
 
 const styles = StyleSheet.create({

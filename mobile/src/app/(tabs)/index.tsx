@@ -1,17 +1,31 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useRef } from 'react';
+import type { HostInstance } from 'react-native';
 
 import { GuideButton, GuideScreen, icons } from '../../guide';
 import type { GuideProfile } from '../../guide-profile';
 import { useGuideState } from '../../guide-state';
+import { focusGuideControl } from '../../guide-motion';
 import { StatusChoices } from '../../status-choices';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { profile, saveProfile } = useGuideState();
+  const statusTrigger = useRef<HostInstance | null>(null);
 
-  function openStatus(statusId: GuideProfile['statusId']) {
+  useFocusEffect(useCallback(() => {
+    if (!statusTrigger.current) return;
+    const frame = requestAnimationFrame(() => {
+      focusGuideControl(statusTrigger.current);
+      statusTrigger.current = null;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []));
+
+  function openStatus(statusId: GuideProfile['statusId'], trigger: HostInstance | null) {
     if (profile?.statusId === statusId || saveProfile({ name: profile?.name ?? '', statusId })) {
-      router.push('/services-modal');
+      statusTrigger.current = trigger;
+      router.navigate('/services-modal');
     }
   }
 

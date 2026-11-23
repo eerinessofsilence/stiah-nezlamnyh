@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 
 import { preparation, sources } from './data/catalog';
 import { ExternalLink, GuideButton, GuidePanel, GuideText, icons } from './guide';
+import { GuideDisclosure } from './guide-disclosure';
 import { GuideCheckbox } from './form-controls';
 import { useGuideState } from './guide-state';
 import { useGuideColors } from './theme';
@@ -22,15 +22,9 @@ export function RouteAction({ action, primary = false }: { action?: string[]; pr
 }
 
 export function RouteSources({ sourceKeys }: { sourceKeys: string[] }) {
-  const [expanded, setExpanded] = useState(false);
-
   return (
-    <View style={styles.sources}>
-      <GuideButton label="Джерела й перевірка" tone="foregroundMuted" row
-        accessibilityState={{ expanded }}
-        icon={expanded ? 'caret-up' : 'caret-down'}
-        onPress={() => setExpanded(!expanded)} />
-      {expanded && sourceKeys.map((key) => {
+    <GuideDisclosure label="Джерела й перевірка" tone="foregroundMuted">
+      {sourceKeys.map((key) => {
         const source = sources[key];
         return source && (
           <View key={key}>
@@ -39,7 +33,7 @@ export function RouteSources({ sourceKeys }: { sourceKeys: string[] }) {
           </View>
         );
       })}
-    </View>
+    </GuideDisclosure>
   );
 }
 
@@ -62,11 +56,15 @@ export function BookmarkButton({ id }: { id: string }) {
     <GuideButton
       label={saved ? 'Збережено' : 'Зберегти маршрут'}
       row
-      icon={saved ? 'bookmark-fill' : 'bookmark'}
+      icon="bookmark"
+      selectedIcon="bookmark-fill"
       accessibilityHint={saved ? 'Прибрати маршрут зі збереженого' : undefined}
       accessibilityState={{ selected: saved, disabled: !progress }}
       disabled={!progress}
-      onPress={() => toggle('saved', id)}
+      onPress={() => {
+        const next = toggle('saved', id);
+        if (next) AccessibilityInfo.announceForAccessibility(next.saved.includes(id) ? 'Маршрут збережено' : 'Маршрут прибрано зі збереженого');
+      }}
     />
   );
 }
@@ -81,22 +79,26 @@ export function RouteChecklist({ id }: { id: string }) {
     const itemId = `${id}:${key}`;
     return { itemId, label, checked: progress?.checked.includes(itemId) ?? false };
   });
+  const progressLabel = (checked: string[]) =>
+    `${items.filter(({ itemId }) => checked.includes(itemId)).length} із ${items.length} підготовлено`;
 
   return (
     <GuidePanel tone="surfaceSoft" style={styles.checklist}>
-      <GuideText type="item" heading>Що підготувати</GuideText>
+      <GuideText type="section">Що підготувати</GuideText>
       <GuideText type="meta" tone="foregroundMuted">{checklist.note}</GuideText>
-      {progress && <GuideText type="meta" tone="foregroundMuted" announcement>{items.filter(({ checked }) => checked).length} із {items.length} підготовлено</GuideText>}
+      {progress && <GuideText type="meta" tone="foregroundMuted">{progressLabel(progress.checked)}</GuideText>}
       {items.map(({ itemId, label, checked }) => (
         <GuideCheckbox key={itemId} label={label} value={checked} disabled={!progress}
-          onValueChange={() => toggle('checked', itemId)} style={[styles.item, { borderTopColor: colors.borderStrong }]} />
+          onValueChange={() => {
+            const next = toggle('checked', itemId);
+            if (next) AccessibilityInfo.announceForAccessibility(progressLabel(next.checked));
+          }} style={[styles.item, { borderTopColor: colors.borderStrong }]} />
       ))}
     </GuidePanel>
   );
 }
 
 const styles = StyleSheet.create({
-  sources: { gap: 4 },
   checklist: { gap: 8 },
   item: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
 });

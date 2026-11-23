@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const { services, preparation, sources, contacts, localContacts, featured } = require('../src/data/catalog.json');
 const { readProfile, statuses } = require('../src/guide-profile.ts');
-const { findContacts, findServices, localAnswers, matchTopics, parseAiAnswers, routeProgressSummary } = require('../src/search.js');
+const { answerSections, findContacts, findSections, findServices, localAnswers, matchTopics, parseAiAnswers, routeProgressSummary } = require('../src/search.js');
 const { readProgress, toggleProgress } = require('../src/route-progress.ts');
 
 test('onboarding restores local profiles and preserves a previously selected status', () => {
@@ -64,6 +64,57 @@ test('assistant distinguishes related commissions and gives the applicable first
   assert.deepEqual(matchTopics(services, 'Які документи для ВЛК і МСЕК?'), ['vlk', 'msek']);
   assert.equal(findServices(services, 'Які документи для ВЛК?')[0].id, 'vlk');
 
+});
+
+test('family profiles and active military lead to the relevant offline guidance', () => {
+  for (const [id, sectionCount] of [['missing-family', 16], ['pow-family', 7], ['fallen-family', 27]]) {
+    const status = statuses.find(status => status.id === id);
+    assert.deepEqual(status.serviceIds, [id]);
+    assert.equal(status.showSections, true);
+    const { sections } = services.find(service => service.id === id);
+    const topics = findSections(sections, '');
+    assert.equal(topics.length, sectionCount);
+    assert.equal(new Set(topics.map(topic => topic.id)).size, sectionCount);
+    assert(topics.every(topic => topic.title && topic.paragraphs.length > 0));
+  }
+  assert(statuses.find(status => status.id === 'military').serviceIds.includes('msek'));
+
+  for (const [question, route, section] of [
+    ['впізнали на відео', 'missing-family', 'recognition'],
+    ['Чи дають пенсію якщо військовий зник безвісти?', 'missing-family', 'missing-pension'],
+    ['як підтвердити полон', 'pow-family', 'confirm-captivity'],
+    ['відстрочка через полон', 'pow-family', 'deferral'],
+    ['15 млн за загибель у полоні', 'pow-family', 'death-grant'],
+    ['частина не надає акт', 'fallen-family', 'family-service-records'],
+    ['немає доступу до тіла військового', 'fallen-family', 'death-without-body'],
+    ['ЕКПФО у відпустці', 'msek', 'military-referral'],
+    ['ВЛК визнала придатним, є інвалідність', 'msek', 'disability-discharge'],
+  ]) {
+    const first = findServices(services, question)[0];
+    assert.equal(first?.id, route, question);
+    assert.deepEqual(answerSections(first, question).map(item => item.id), [section], question);
+    assert.deepEqual(localAnswers(services, question), [{route, section}], question);
+  }
+});
+
+test('family topic search finds instructions within the selected guide', () => {
+  for (const [id, query, expected] of [
+    ['missing-family', 'ЄРДР', 'search'],
+    ['pow-family', 'підтвердити полон', 'confirm-captivity'],
+    ['fallen-family', 'поховання', 'burial'],
+  ]) {
+    const { sections } = services.find(service => service.id === id);
+    const results = findSections(sections, query);
+    assert.equal(results[0]?.id, expected);
+    assert(results.length < sections.length);
+    assert.deepEqual(findSections(sections, 'їжакоптер'), []);
+  }
+  for (const [key, section] of [
+    ['missing-family', 'search-documents'], ['pow-family', 'confirm-captivity'],
+    ['fallen-family', 'family-status'], ['fallen-family:death-grant', 'death-grant'],
+  ]) {
+    assert.equal(preparation[key].section, section);
+  }
 });
 
 test('assistant returns the applicable answer, not a generic first step', () => {

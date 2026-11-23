@@ -1,16 +1,16 @@
 export const statuses = [
   { id: 'military', title: 'Військовий', icon: 'shield',
-    serviceIds: ['injury', 'vlk', 'status', 'benefits', 'housing', 'psychology'] },
+    serviceIds: ['injury', 'vlk', 'msek', 'status', 'benefits', 'housing', 'psychology'] },
   { id: 'veteran', title: 'Ветеран', icon: 'medal',
     serviceIds: ['status', 'medical', 'work', 'benefits', 'housing', 'legal', 'escort', 'psychology'] },
   { id: 'disability', title: 'Особа з інвалідністю внаслідок війни', icon: 'wheelchair',
     serviceIds: ['msek', 'status', 'medical', 'rehab', 'benefits', 'housing', 'psychology', 'legal'] },
   { id: 'fallen-family', title: 'Сім’ї загиблих (померлих)', icon: 'heart',
-    serviceIds: ['fallen-family', 'status', 'benefits', 'housing', 'legal', 'psychology'] },
+    serviceIds: ['fallen-family'], showSections: true },
   { id: 'pow-family', title: 'Родини полонених', icon: 'users',
-    serviceIds: ['missing-family', 'escort', 'status', 'benefits', 'legal', 'psychology'] },
+    serviceIds: ['pow-family'], showSections: true },
   { id: 'missing-family', title: 'Сім’ї зниклих безвісти', icon: 'user-focus',
-    serviceIds: ['missing-family', 'escort', 'status', 'benefits', 'legal', 'psychology'] },
+    serviceIds: ['missing-family'], showSections: true },
 ] as const;
 
 export type GuideProfile = {

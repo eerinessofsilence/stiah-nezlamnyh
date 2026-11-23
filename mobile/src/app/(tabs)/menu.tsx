@@ -36,8 +36,7 @@ export default function MenuScreen() {
       <GuidePressable accessibilityRole="link"
         accessibilityLabel={`Зателефонувати на гарячу лінію для ветеранів: ${hotline.phone}`}
         onPress={() => Linking.openURL(hotline.dial).catch(() => Alert.alert('Не вдалося відкрити виклик', hotline.phone))}
-        android_ripple={{ color: colors.border }}
-        style={({ pressed }) => [styles.hotline, { backgroundColor: pressed ? colors.surfaceMuted : colors.surfaceSoft }]}>
+        pressedColor={colors.surface} style={[styles.hotline, { backgroundColor: colors.surfaceSoft }]}>
         <View style={[styles.icon, { backgroundColor: colors.surface }]}><GuideIcon name={icons.phone} size={22} /></View>
         <View style={styles.copy}>
           <GuideText type="item">Гаряча лінія для ветеранів</GuideText>

@@ -59,13 +59,36 @@ const guideSearch = (() => {
     }).filter(({score}) => score > 0).sort((a, b) => b.score - a.score).map(({service}) => service);
   }
 
+  function findSections(sections, query) {
+    if (!query.trim()) return sections;
+    const words = queryWords(query);
+    const terms = words.length ? words : tokens(query);
+    const matches = (token, term) => similar(token, term) || token.startsWith(term);
+    return sections.map(section => {
+      const title = tokens(section.title);
+      const keywords = tokens(section.keys);
+      const text = words.length ? tokens(section.paragraphs.join(" ")) : [];
+      let score = keywordScore(query, section.keys);
+      for (const term of terms) {
+        if (title.some(token => matches(token, term))) score += 8;
+        else if (keywords.some(token => matches(token, term))) score += 5;
+        else if (text.some(token => matches(token, term))) score += 1;
+        else return {section, score: 0};
+      }
+      return {section, score};
+    }).filter(({score}) => score > 0).sort((a, b) => b.score - a.score).map(({section}) => section);
+  }
+
   const subjectRules = [
     [/зуб|стоматолог/iu, "medical"],
     [/психолог|психотерап|психіатр|безсонн|не спиться|не сплю|птср|кошмар|панічн/u, "psychology"],
-    [/безвісті|безвісти|зникл|зник |зникн|полон|плен|єрдр/u, "missing-family"],
-    [/загиб|полегл|погиб|годувальник/u, "fallen-family"],
+    [/підтвердж\p{L}* полон|підтвердити полон|позбавлен\p{L}* особистої свободи/u, "pow-family"],
+    [/безвісті|безвісти|зникл|зник |зникн|єрдр|впізна\p{L}* на (?:фото|відео)|портретн\p{L}* експертиз/u, "missing-family"],
+    [/полон|плен/u, "pow-family"],
+    [/загиб|полегл|погиб|годувальник|частина не (?:дає|видає|надає) акт|(?:доступу до|знайшли|евакуювали) тіла|смерт\p{L}* військов/u, "fallen-family"],
+    [/(?:звільн\p{L}*.*інвалід|інвалід.*звільн\p{L}*|влк.*придатн\p{L}*.*інвалід)/u, "msek"],
     [/влк|\bввк\b|придатність|резерв\+/iu, "vlk"],
-    [/мсек|екопфо|\bопфо\b|експертно[їю] команд|експертна команда|повсякденн/u, "msek"],
+    [/мсек|екопфо|екпфо|\bопфо\b|експертно[їю] команд|експертна команда|повсякденн/u, "msek"],
     [/протез|реабілітац|реабилитац|допоміжн.{1,4} засіб|візок|колісн\p{L}*\s+кріс|кріс\p{L}*\s+колісн/u, "rehab"],
     [/комунал|жкп|жку|льгот|пільг|пенсі|пенси/u, "benefits"],
     [/житл|квартир|оренд|єосел|іпотек/u, "housing"],
@@ -80,7 +103,9 @@ const guideSearch = (() => {
     const plain = question.toLocaleLowerCase("uk");
     const explicit = subjectRules.filter(([pattern]) => pattern.test(plain) || pattern.test(normalized(plain)))
       .map(([, id]) => id).filter(id => services.some(service => service.id === id));
-    if (explicit.includes("vlk") && explicit.includes("msek")) return ["vlk", "msek"];
+    if (explicit.includes("vlk") && explicit.includes("msek")) {
+      return explicit[0] === "msek" || /(?:екопфо|екпфо).*відпуст/u.test(plain) ? ["msek"] : ["vlk", "msek"];
+    }
     if (explicit.includes("rehab") && explicit.includes("benefits") && /^(протези?|реабілітація)\s+(і|й|та|або|и)\s+(пільг|виплат|льгот)/iu.test(plain.trim())) {
       return ["rehab", "benefits"];
     }
@@ -160,7 +185,7 @@ const guideSearch = (() => {
     });
   }
 
-  return {findServices, matchTopics, answerSections, findContacts, localAnswers, parseAiAnswers, routeProgressSummary, normalized};
+  return {findServices, findSections, matchTopics, answerSections, findContacts, localAnswers, parseAiAnswers, routeProgressSummary, normalized};
 })();
 
 if (typeof module !== "undefined") module.exports = guideSearch;

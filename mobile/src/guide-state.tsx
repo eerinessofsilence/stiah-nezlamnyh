@@ -10,6 +10,7 @@ import { readProgress, type RouteProgress, toggleProgress } from './route-progre
 const storageKey = 'nezlamnyi-route-progress-v1';
 const profileKey = 'nezlamnyi-guide-profile-v1';
 const legacyStatusKey = 'nezlamnyi-user-status-v1';
+const welcomeKey = 'nezlamnyi-welcome-seen-v1';
 const serviceIds = new Set(services.map(({ id }) => id));
 const itemIds = new Set(Object.entries(preparation).flatMap(([id, checklist]) => checklist?.items.map(([key]) => `${id}:${key}`) ?? []));
 
@@ -32,20 +33,38 @@ function loadProfile() {
 const GuideState = createContext<{
   profile: GuideProfile | null;
   saveProfile: (profile: GuideProfile) => boolean;
+  hasSeenWelcome: boolean;
+  dismissWelcome: () => void;
   query: string;
   setQuery: (query: string) => void;
   offline: boolean;
   progress: RouteProgress | null;
   retryProgress: () => void;
-  toggle: (key: keyof RouteProgress, id: string) => void;
+  toggle: (key: keyof RouteProgress, id: string) => RouteProgress | undefined;
 } | null>(null);
 
 export function GuideProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState(loadProfile);
+  const [welcomeSeen, setWelcomeSeen] = useState(() => {
+    try {
+      return Storage.getItemSync(welcomeKey) === '1';
+    } catch {
+      return false;
+    }
+  });
   const [query, setQuery] = useState('');
   const [progress, setProgress] = useState(loadProgress);
   const current = useRef(progress);
   const network = Network.useNetworkState();
+
+  function dismissWelcome() {
+    setWelcomeSeen(true);
+    try {
+      Storage.setItemSync(welcomeKey, '1');
+    } catch {
+      // Allow entry for this session if SQLite is unavailable.
+    }
+  }
 
   function saveProfile(next: GuideProfile) {
     try {
@@ -74,6 +93,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       Storage.setItemSync(storageKey, JSON.stringify(next));
       current.current = next;
       setProgress(next);
+      return next;
     } catch {
       Alert.alert('Не вдалося зберегти зміну', 'Спробуйте ще раз. Попередній стан залишився збереженим.');
     }
@@ -81,6 +101,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
 
   return <GuideState.Provider value={{
     profile, saveProfile,
+    hasSeenWelcome: welcomeSeen || !!profile, dismissWelcome,
     query, setQuery, offline: network.isConnected === false || network.isInternetReachable === false,
     progress, retryProgress, toggle,
   }}>{children}</GuideState.Provider>;

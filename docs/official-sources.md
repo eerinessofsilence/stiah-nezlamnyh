@@ -11,7 +11,8 @@
 | Сімʼї загиблих | [Мінветеранів · статус родини](https://mva.gov.ua/to-veterans/status-simi-zagiblogo-pomerlogo-veterana-viyni-ta-chlenam-simi-zagiblogo-pomerlogo-zahisnika-chi-zahisnitsi-ukraini), [Міноборони · одноразова допомога](https://mod.gov.ua/news/viplata-odnorazovoyi-groshovoyi-dopomogi-u-razi-zagibeli-abo-smerti-vijskovosluzhbovczya-shho-potribno-znati), [ПФУ · пенсія](https://www.pfu.gov.ua/lg/373477-pensiyi-v-razi-vtraty-goduvalnyka-chlenam-simej-zagyblyh-vijskovosluzhbovtsiv/) |
 | Сімʼї безвісти зниклих | [Нацполіція · розшук](https://npu.gov.ua/gromadyanam/rozshuk-osib-znyklykh-bezvisty-za-osoblyvykh-umov), [МВС · реєстр і витяг](https://znykli-bezvisti.mvs.gov.ua/), [Міноборони · статус і виплати](https://mod.gov.ua/explanation/status-znykloho-bezvisty-viiskovosluzhbovtsia-yak-nabuvaietsia-i-shcho-harantuietsia-rodyni) |
 | Як потрапити на ВЛК | [Міноборони · направлення, огляд і оскарження](https://mod.gov.ua/explanation/yak-prokhodyt-vlk-ta-komu-chas-na-povtornyi-ohliad-haid-dlia-tsyvilnykh-i-viiskovykh) |
-| Як потрапити на МСЕК | [МОЗ · порядок оцінювання](https://moz.gov.ua/uk/yak-projti-ocinyuvannya-povsyakdennogo-funkcionuvannya-suchasna-prozora-procedura), [Міноборони · маршрут військовослужбовця](https://mod.gov.ua/explanation/yak-vijskovosluzhbovczyu-projti-ekopfo-dlya-vstanovlennya-invalidnosti) |
+| Родини полонених | [Координаційний штаб · дії родини](https://roadmap.koordshtab.gov.ua/prisoner-of-war), [Координаційний штаб · виплата грошового забезпечення](https://roadmap.koordshtab.gov.ua/payments-for-families), [Мінрозвитку · встановлення факту позбавлення свободи](https://mininfra.gov.ua/news/minrozvytku-iak-podaty-zaiavu-na-vstanovlennia-faktu-pozbavlennia-osobystoi-svobody) |
+| Направлення на ЕКОПФО | [МОЗ · порядок оцінювання](https://moz.gov.ua/uk/news/yak-prohodit-proces-ocinyuvannya-povsyakdennogo-funkcionuvannya), [Міноборони · маршрут військовослужбовця](https://mod.gov.ua/explanation/yak-vijskovosluzhbovczyu-projti-ekopfo-dlya-vstanovlennya-invalidnosti), [БПД · зразки рапортів](https://legalaid.gov.ua/wp-content/uploads/2025/01/zbirka-raportiv-onovlena-u-sichni-2025-roku.pdf) |
 
 ## Регіональні першоджерела
 
@@ -32,6 +33,8 @@
 ## Навігаційний референс
 
 [Правовий навігатор «Принцип» — ветеранам](https://navigator.pryncyp.org/veterans) використано як приклад структури тем. Правові відомості гіда звіряються з офіційними матеріалами відповідальних установ.
+
+Обсяг сімейних маршрутів звірено за трьома розділами «Правового навігатора». [Родини зниклих безвісти](https://navigator.pryncyp.org/family/family-of-missing), [родини полонених](https://navigator.pryncyp.org/family/captives), [родини загиблих](https://navigator.pryncyp.org/family/family-of-fallen).
 
 ## Як оновити каталог
 

@@ -1,4 +1,5 @@
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useRef } from 'react';
+import { type HostInstance, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { GuideIcon, GuidePressable, GuideText } from './guide';
 import { GuideRadioMark } from './form-controls';
@@ -7,11 +8,12 @@ import { useGuideColors } from './theme';
 
 export function StatusChoices({ selectedId, onChoose, variant = 'tiles' }: {
   selectedId: GuideProfile['statusId'] | null;
-  onChoose: (statusId: GuideProfile['statusId']) => void;
+  onChoose: (statusId: GuideProfile['statusId'], trigger: HostInstance | null) => void;
   variant?: 'tiles' | 'rows' | 'links';
 }) {
   const colors = useGuideColors();
   const { width, fontScale } = useWindowDimensions();
+  const triggers = useRef<Partial<Record<GuideProfile['statusId'], HostInstance | null>>>({});
   const rows = variant === 'rows';
   const links = variant === 'links';
   const twoColumns = !rows && width >= 340 && fontScale < 1.4;
@@ -22,12 +24,13 @@ export function StatusChoices({ selectedId, onChoose, variant = 'tiles' }: {
         const selected = !links && item.id === selectedId;
         return (
           <GuidePressable key={item.id} accessibilityRole={links ? 'button' : 'radio'}
+            ref={element => { triggers.current[item.id] = element; }}
             accessibilityState={links ? undefined : { checked: selected }}
             accessibilityHint={links ? 'Відкриває послуги для цього статусу' : undefined}
-            accessibilityLabel={item.title} onPress={() => onChoose(item.id)}
-            android_ripple={{ color: colors.border }}
-            style={({ pressed }) => [styles.tile, !twoColumns && styles.fullWidth, rows && styles.row, {
-              backgroundColor: pressed || selected ? colors.surfaceMuted : colors.surface,
+            accessibilityLabel={item.title} onPress={() => onChoose(item.id, triggers.current[item.id] ?? null)}
+            pressedColor={selected ? colors.surface : colors.surfaceMuted}
+            style={[styles.tile, !twoColumns && styles.fullWidth, rows && styles.row, {
+              backgroundColor: selected ? colors.surfaceMuted : colors.surface,
               borderColor: selected ? colors.foreground : colors.borderStrong,
             }]}>
             <View style={styles.tileTop}>

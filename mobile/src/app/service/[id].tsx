@@ -1,9 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { checkedOn, type GuideSection, preparation, services } from '../../data/catalog';
 import { GuideButton, GuideIcon, GuidePanel, GuidePressable, GuideScreen, GuideText, icons, ServiceList } from '../../guide';
+import { GuideDisclosure } from '../../guide-disclosure';
 import { useGuideState } from '../../guide-state';
 import { BookmarkButton, ProgressUnavailable, RouteAction, RouteChecklist, RouteSources } from '../../route-actions';
 import { useGuideColors } from '../../theme';
@@ -11,13 +11,15 @@ import { useGuideColors } from '../../theme';
 export default function ServiceScreen() {
   const router = useRouter();
   const colors = useGuideColors();
-  const { id, section, returnTo } = useLocalSearchParams<{ id: string; section?: string; returnTo?: string }>();
+  const { id, section, returnTo, view } = useLocalSearchParams<{
+    id: string; section?: string; returnTo?: string; view?: string;
+  }>();
   const { progress } = useGuideState();
   const service = services.find(item => item.id === id);
   const close = (
     <GuidePressable accessibilityRole="button" accessibilityLabel="Повернутися до послуг"
       onPress={() => returnTo === '/services-modal' ? router.replace('/services-modal') : router.canGoBack() ? router.back() : router.replace('/services')}
-      style={({ pressed }) => [styles.close, { backgroundColor: pressed ? colors.surfaceMuted : colors.surfaceSoft }]}>
+      pressedColor={colors.surface} style={[styles.close, { backgroundColor: colors.surfaceSoft }]}>
       <GuideIcon name={icons.back} size={18} />
     </GuidePressable>
   );
@@ -35,6 +37,17 @@ export default function ServiceScreen() {
   const lists = Object.entries(preparation).filter(([key]) => key === id || key.startsWith(id + ':'));
   const references = [...new Set([...service.source, ...lists.flatMap(([, list]) => list ? [list.source] : [])])];
   const checklistFor = (part: GuideSection) => lists.find(([, list]) => list?.section === part.id)?.[0];
+
+  if (view === 'topic' && active) {
+    return (
+      <GuideScreen title={active.title} titleAction={close}>
+        <SectionContent section={active} checklistFor={checklistFor(active)} />
+        {progress ? <BookmarkButton id={id} /> : <ProgressUnavailable />}
+        <RouteSources key={service.id} sourceKeys={references} />
+        <GuideText type="meta" tone="foregroundMuted">Редакція від {checkedOn}</GuideText>
+      </GuideScreen>
+    );
+  }
 
   return (
     <GuideScreen title={service.title} titleAction={close}>
@@ -69,24 +82,25 @@ export default function ServiceScreen() {
 function SectionCard({ section, checklistFor, initiallyOpen = false }: {
   section: GuideSection; checklistFor?: string; initiallyOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(initiallyOpen);
   return (
-    <View style={styles.section}>
-      <GuideButton label={section.title} row accessibilityState={{ expanded: open }}
-        icon={open ? 'caret-up' : 'caret-down'}
-        onPress={() => setOpen(value => !value)} />
-      {open && <GuidePanel>
-        {section.paragraphs.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)}
-        <RouteAction action={section.action} />
-        {checklistFor && <RouteChecklist id={checklistFor} />}
-      </GuidePanel>}
-    </View>
+    <GuideDisclosure label={section.title} initiallyOpen={initiallyOpen}>
+      <SectionContent section={section} checklistFor={checklistFor} />
+    </GuideDisclosure>
+  );
+}
+
+function SectionContent({ section, checklistFor }: { section: GuideSection; checklistFor?: string }) {
+  return (
+    <GuidePanel>
+      {section.paragraphs.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)}
+      <RouteAction action={section.action} />
+      {checklistFor && <RouteChecklist id={checklistFor} />}
+    </GuidePanel>
   );
 }
 
 const styles = StyleSheet.create({
   close: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  section: { gap: 4 },
   step: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   number: { minWidth: 28, minHeight: 28, padding: 4, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   stepCopy: { flex: 1 },

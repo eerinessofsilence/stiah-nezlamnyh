@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-naviga
 import { useFonts } from 'expo-font';
 
 import { GuideLaunch } from '../guide-launch';
+import { GuideMotionProvider, useReducedMotion } from '../guide-motion';
 import { GuideProvider } from '../guide-state';
 import { GuideThemeProvider, useGuideAppearance, useGuideColors } from '../theme';
 import { guideFonts } from '../typography';
@@ -15,7 +16,9 @@ export default function RootLayout() {
 
   return (
     <GuideThemeProvider>
-      <GuideLaunch ready={ready}>{ready && <GuideNavigation />}</GuideLaunch>
+      <GuideMotionProvider>
+        <GuideLaunch ready={ready}><GuideNavigation /></GuideLaunch>
+      </GuideMotionProvider>
     </GuideThemeProvider>
   );
 }
@@ -23,6 +26,7 @@ export default function RootLayout() {
 function GuideNavigation() {
   const colors = useGuideColors();
   const { darkMode } = useGuideAppearance();
+  const reduced = useReducedMotion();
   const theme = darkMode ? DarkTheme : DefaultTheme;
   const sheetOptions: NativeStackNavigationOptions = {
     headerShown: false,
@@ -45,9 +49,10 @@ function GuideNavigation() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false, scrollEdgeEffects: { top: 'hidden', bottom: 'soft' } }} />
           <Stack.Screen name="welcome" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={sheetOptions} />
           <Stack.Screen name="services-modal" options={sheetOptions} />
-          <Stack.Screen name="service/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="service/[id]" options={{ headerShown: false, animation: reduced ? 'none' : 'default' }} />
         </Stack>
       </GuideProvider>
     </ThemeProvider>

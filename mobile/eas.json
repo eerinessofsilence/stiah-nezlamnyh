@@ -3,6 +3,26 @@
     "appVersionSource": "local"
   },
   "build": {
+    "android-test": {
+      "distribution": "internal",
+      "node": "22.13.0",
+      "env": {
+        "EXPO_PUBLIC_GUIDE_SITE_URL": "https://nezlamnyi.eerinessbusiness.workers.dev"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "google-play-internal": {
+      "distribution": "store",
+      "node": "22.13.0",
+      "env": {
+        "EXPO_PUBLIC_GUIDE_SITE_URL": "https://nezlamnyi.eerinessbusiness.workers.dev"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
     "testflight": {
       "distribution": "store",
       "env": {

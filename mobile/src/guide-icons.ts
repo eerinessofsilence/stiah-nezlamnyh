@@ -22,6 +22,8 @@ export const guideIconSources = {
   heartbeat: require('../assets/phosphor/heartbeat.png'),
   house: require('../assets/phosphor/house.png'),
   'house-fill': require('../assets/phosphor/house-fill.png'),
+  info: require('../assets/phosphor/info.png'),
+  'info-fill': require('../assets/phosphor/info-fill.png'),
   'magnifying-glass': require('../assets/phosphor/magnifying-glass.png'),
   medal: require('../assets/phosphor/medal.png'),
   money: require('../assets/phosphor/money.png'),

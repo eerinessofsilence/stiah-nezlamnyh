@@ -1,21 +1,25 @@
-import { useRef, useState } from 'react';
-import { StyleSheet, TextInput, type TextInputInstance, View } from 'react-native';
+import { type RefObject, useRef, useState } from 'react';
+import { Animated, StyleSheet, TextInput, type TextInputInstance, View } from 'react-native';
 
 import { GuideIcon, GuidePressable, icons } from './guide';
 import { GuideInputFrame, GuideInputPlaceholder } from './form-controls';
 import { useGuideState } from './guide-state';
+import { useGuideTransition } from './guide-motion';
 import { useGuideColors } from './theme';
 import { typography } from './typography';
 
-export function SearchField({ value, onChange, label = 'Пошук послуг' }: {
-  value?: string; onChange?: (value: string) => void; label?: string;
+export function SearchField({ value, onChange, inputRef, label = 'Пошук послуг' }: {
+  value?: string; onChange?: (value: string) => void; inputRef?: RefObject<TextInputInstance | null>; label?: string;
 } = {}) {
   const state = useGuideState();
   const query = value ?? state.query;
   const setQuery = onChange ?? state.setQuery;
   const colors = useGuideColors();
-  const input = useRef<TextInputInstance>(null);
+  const localInput = useRef<TextInputInstance>(null);
+  const input = inputRef ?? localInput;
   const [focused, setFocused] = useState(false);
+  const canClear = query !== '';
+  const clearOpacity = useGuideTransition(canClear ? 1 : 0);
 
   return (
     <GuideInputFrame focused={focused} radius={8} style={styles.field}>
@@ -41,17 +45,19 @@ export function SearchField({ value, onChange, label = 'Пошук послуг'
         />
         {query === '' && <GuideInputPlaceholder>{label}</GuideInputPlaceholder>}
       </View>
-      {query !== '' && (
+      <Animated.View style={{ opacity: clearOpacity }} pointerEvents={canClear ? 'auto' : 'none'}
+        accessibilityElementsHidden={!canClear} importantForAccessibility={canClear ? 'auto' : 'no-hide-descendants'}>
         <GuidePressable
           accessibilityRole="button"
           accessibilityLabel="Очистити пошук"
-          android_ripple={{ color: colors.border }}
+          disabled={!canClear}
+          focusable={canClear}
           style={styles.clear}
           onPress={() => { setQuery(''); input.current?.focus(); }}
         >
           <GuideIcon name={icons.close} color={colors.foregroundMuted} size={16} />
         </GuidePressable>
-      )}
+      </Animated.View>
     </GuideInputFrame>
   );
 }
