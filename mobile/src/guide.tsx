@@ -15,7 +15,7 @@ import { GuideContentReady } from './guide-launch';
 import { focusGuideControl, motion, useGuideTransition, useReducedMotion } from './guide-motion';
 import { useGuideState } from './guide-state';
 import { StatusEdge } from './status-edge';
-import { useGuideAppearance, useGuideColors } from './theme';
+import { useGuideColors } from './theme';
 import { typography } from './typography';
 
 const tabRoutes = ['index', 'services', 'assistant', 'contacts', 'menu'];
@@ -25,21 +25,22 @@ export const guideContentMaxWidth = 448;
 // Match the horizontal inset of the floating tab bar on iPhone.
 export const guideContentInset = Platform.OS === 'ios' && !Platform.isPad && hasNativeHomeTabs ? 20 : 12;
 
-export function GuideScreen({ title, titleAction, titleType = 'title', children, sheet = false, showBrand = false, scrollRef, adjustForKeyboard = false, footerHeight = 0, onScroll, onLayout, onScrollBeginDrag, onMomentumScrollEnd }: {
+export function GuideScreen({ title, titleAction, titleType = 'title', children, sheet = false, scrollRef, adjustForKeyboard = false, footerHeight = 0, onScroll, onLayout, onScrollBeginDrag, onMomentumScrollEnd }: {
   title?: string;
   titleAction?: ReactNode;
   titleType?: 'title' | 'sheetTitle';
   children: ReactNode;
   sheet?: boolean;
-  showBrand?: boolean;
   scrollRef?: Ref<ScrollViewInstance>;
   adjustForKeyboard?: boolean;
   footerHeight?: number;
 } & Pick<ComponentProps<typeof ScrollView>, 'onScroll' | 'onLayout' | 'onScrollBeginDrag' | 'onMomentumScrollEnd'>) {
   const colors = useGuideColors();
-  const { darkMode } = useGuideAppearance();
   const { offline } = useGuideState();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale >= 1.4;
+  const stackTitle = largeText && !!titleAction;
   const router = useRouter();
   const reportReady = useContext(GuideContentReady);
   const laidOut = useRef(false);
@@ -103,7 +104,7 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
       automaticallyAdjustKeyboardInsets={adjustForKeyboard}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={android ? 'on-drag' : 'interactive'}
-      stickyHeaderIndices={sheet && title ? [0] : undefined}
+      stickyHeaderIndices={sheet && title && !largeText ? [0] : undefined}
       contentContainerStyle={[
         styles.screen,
         sheet && styles.sheet,
@@ -118,22 +119,17 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
     >
       {sheet && title && (
         <View style={[styles.sheetTitleRow, { backgroundColor: colors.surface }]}>
-          <View style={styles.titleRow}>
-            <GuideText type="sheetTitle" textRef={headingRef} style={styles.titleText}>{title}</GuideText>
-            {titleAction}
+          <View style={stackTitle ? styles.titleStack : styles.titleRow}>
+            {stackTitle && <View style={styles.sheetTitleAction}>{titleAction}</View>}
+            <GuideText type="sheetTitle" textRef={headingRef} style={!stackTitle && styles.titleText}>{title}</GuideText>
+            {!stackTitle && titleAction}
           </View>
         </View>
       )}
-      {!sheet && showBrand && (
-        <View style={styles.brand}>
-          <Image source={darkMode ? require('../assets/brand-logo-dark.png') : require('../assets/brand-logo.png')}
-            style={styles.brandLogo} accessibilityLabel="Гід: Стяг незламних" />
-        </View>
-      )}
       {!sheet && title && (
-        <View style={styles.titleRow}>
+        <View style={stackTitle ? styles.titleStack : styles.titleRow}>
           {titleAction}
-          <GuideText type={titleType} style={styles.titleText}>{title}</GuideText>
+          <GuideText type={titleType} style={!stackTitle && styles.titleText}>{title}</GuideText>
         </View>
       )}
       {offline && !sheet && activeTab >= 0 && <GuidePanel tone="surfaceSoft"><GuideText type="support" announcement>Ви офлайн. Довідник доступний, а для зовнішніх сайтів потрібен інтернет.</GuideText></GuidePanel>}
@@ -221,12 +217,13 @@ export function GuideStateIcon({ name, selectedName, selected, color, selectedCo
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function GuidePressable({ style, onFocus, onBlur, onPressIn, onPressOut, onTouchEnd, onTouchCancel, focusColor, pressedColor, ...props }:
+export function GuidePressable({ style, onFocus, onBlur, onPressIn, onPressOut, onTouchEnd, onTouchCancel, focusColor, pressedColor, animatePress = true, ...props }:
   Omit<ComponentProps<typeof Pressable>, 'style' | 'android_ripple'> & {
-    style?: ComponentProps<typeof View>['style']; focusColor?: string; pressedColor?: string;
+    style?: ComponentProps<typeof View>['style']; focusColor?: string; pressedColor?: string; animatePress?: boolean;
   }) {
   const colors = useGuideColors();
   const reduced = useReducedMotion();
+  const animate = animatePress && !reduced;
   const [focused, setFocused] = useState(false);
   const [pressed, setPressed] = useState(false);
   const pressing = useRef(false);
@@ -235,10 +232,11 @@ export function GuidePressable({ style, onFocus, onBlur, onPressIn, onPressOut, 
   const disabled = !!props.disabled;
   const baseColor = StyleSheet.flatten(style)?.backgroundColor;
   const tint = pressedColor ?? colors.surfaceMuted;
+  const transparentPress = pressedColor === 'transparent';
   const animatedColor = useMemo(() => highlight.interpolate({
     inputRange: [0, 1],
-    outputRange: [typeof baseColor === 'string' && baseColor !== 'transparent' ? baseColor : `${tint}00`, tint],
-  }), [baseColor, highlight, tint]);
+    outputRange: [typeof baseColor === 'string' && baseColor !== 'transparent' ? baseColor : transparentPress ? 'transparent' : `${tint}00`, transparentPress ? 'transparent' : tint],
+  }), [baseColor, highlight, tint, transparentPress]);
 
   useEffect(() => {
     if (disabled) {
@@ -247,27 +245,31 @@ export function GuidePressable({ style, onFocus, onBlur, onPressIn, onPressOut, 
     }
     highlight.setValue(pressing.current ? 1 : 0);
     return () => highlight.stopAnimation();
-  }, [disabled, highlight, reduced]);
+  }, [animate, disabled, highlight]);
 
   // Touch end can arrive before Pressable's minimum press duration elapses.
   function releaseHighlight() {
     if (!pressing.current) return;
     pressing.current = false;
     setPressed(false);
-    if (!reduced && !disabled) Animated.timing(highlight, {
+    if (animate && !disabled) Animated.timing(highlight, {
       toValue: 0, duration: motion.feedback, easing: motion.easeOut, useNativeDriver: true, isInteraction: false,
     }).start();
   }
 
   return (
     <AnimatedPressable accessibilityLanguage="uk" {...props}
+      onPress={animatePress || !props.onPress ? props.onPress : event => {
+        releaseHighlight();
+        props.onPress?.(event);
+      }}
       onFocus={event => { setFocused(true); onFocus?.(event); }}
       onBlur={event => { setFocused(false); onBlur?.(event); }}
       onPressIn={event => {
         pressing.current = true;
         lastPressIn.current = event.timeStamp;
         setPressed(true);
-        if (!reduced) highlight.setValue(1);
+        if (animate) highlight.setValue(1);
         onPressIn?.(event);
       }}
       onPressOut={event => {
@@ -279,7 +281,7 @@ export function GuidePressable({ style, onFocus, onBlur, onPressIn, onPressOut, 
       style={[
         style,
         !disabled && (props.onPress || props.onLongPress) &&
-          { backgroundColor: reduced ? (pressed ? tint : baseColor) : animatedColor },
+          { backgroundColor: animate ? animatedColor : pressed ? tint : baseColor },
         focused && !disabled && { outlineWidth: 2, outlineOffset: -2, outlineColor: focusColor ?? colors.foreground },
       ]} />
   );
@@ -316,7 +318,7 @@ export function ServiceList({ items, tiles = false, subtitle, openSection, onOpe
           if (onOpen) onOpen(service, sectionId);
           else router.push({ pathname: '/service/[id]', params: { id: service.id, section: sectionId } });
         }}
-        pressedColor={tiles ? colors.surface : colors.surfaceMuted}
+        pressedColor={tiles ? colors.surface : colors.surfaceSoft}
         style={[
           tiles ? [styles.tile, twoColumns && styles.tileColumn, {
             backgroundColor: colors.surfaceMuted,
@@ -326,7 +328,7 @@ export function ServiceList({ items, tiles = false, subtitle, openSection, onOpe
         ]}
       >
         <View style={tiles ? styles.tileTop : undefined}>
-          <View style={[styles.iconTile, { backgroundColor: tiles ? colors.surfaceSoft : colors.surfaceMuted }]}>
+          <View style={[styles.iconTile, { backgroundColor: tiles ? colors.surfaceTileIcon : colors.surfaceMuted }]}>
             <GuideIcon name={serviceIcons[service.id] ?? serviceIcons.status} size={22} />
           </View>
           {tiles && <GuideIcon name={icons.next} color={colors.foregroundMuted} size={22} />}
@@ -365,6 +367,10 @@ export function ServiceList({ items, tiles = false, subtitle, openSection, onOpe
 
 export type GuideTextTone = 'foreground' | 'foregroundMuted' | 'accent' | 'onFeature' | 'onHero';
 
+const headingRamps: Partial<Record<keyof typeof typography, ComponentProps<typeof Text>['dynamicTypeRamp']>> = {
+  title: 'title1', sheetTitle: 'title2', section: 'title3',
+};
+
 export function GuideText({ children, type = 'body', heading = false, tone = 'foreground', announcement = false, style, textRef }: {
   children: ReactNode;
   type?: keyof typeof typography;
@@ -375,13 +381,15 @@ export function GuideText({ children, type = 'body', heading = false, tone = 'fo
   textRef?: Ref<TextInstance>;
 }) {
   const colors = useGuideColors();
-  const isHeading = heading || type === 'title' || type === 'sheetTitle' || type === 'section';
+  const role = heading && type === 'body' ? 'section' : type;
+  const dynamicTypeRamp = headingRamps[role];
   return (
     <>
       {announcement && Platform.OS === 'ios' && typeof children === 'string' && <GuideAnnouncement message={children} />}
-      <Text ref={textRef} accessibilityLanguage="uk" accessibilityRole={isHeading ? 'header' : undefined}
+      <Text ref={textRef} accessibilityLanguage="uk" accessibilityRole={heading || dynamicTypeRamp ? 'header' : undefined}
+        dynamicTypeRamp={dynamicTypeRamp}
         accessibilityLiveRegion={announcement ? 'polite' : undefined}
-        style={[typography[heading && type === 'body' ? 'section' : type], { color: colors[tone] }, style]}>
+        style={[typography[role], { color: colors[tone] }, style]}>
         {children}
       </Text>
     </>
@@ -409,15 +417,16 @@ type ButtonAppearance = {
   label: string;
   variant?: 'primary' | 'secondary';
   icon?: GuideIconName;
-  selectedIcon?: GuideIconName;
   tone?: 'foreground' | 'foregroundMuted' | 'accent' | 'onFeature';
   fullWidth?: boolean;
   row?: boolean;
 };
 
-export function GuideButton({ label, variant = 'secondary', icon, selectedIcon, tone = 'foreground', fullWidth = false, row = false, ...props }:
+export function GuideButton({ label, variant = 'secondary', icon, tone = 'foreground', fullWidth = false, row = false, style, ...props }:
   ButtonAppearance & Pick<ComponentProps<typeof Pressable>,
-  'onPress' | 'onLongPress' | 'accessibilityRole' | 'accessibilityLabel' | 'accessibilityHint' | 'accessibilityState' | 'disabled'>) {
+  'onPress' | 'onLongPress' | 'accessibilityRole' | 'accessibilityLabel' | 'accessibilityHint' | 'accessibilityState' | 'disabled'> & {
+    style?: ComponentProps<typeof View>['style'];
+  }) {
   const colors = useGuideColors();
   const primary = variant === 'primary';
   const onFeature = !primary && tone === 'onFeature';
@@ -439,13 +448,12 @@ export function GuideButton({ label, variant = 'secondary', icon, selectedIcon, 
           borderWidth: primary ? 0 : 1,
           opacity: props.disabled ? 0.5 : 1,
         },
+        style,
       ]}
     >
       {icon && leadingIcon && <GuideIcon name={icon} color={color} />}
       <Text style={[typography.item, styles.actionText, { color, textAlign: row ? 'left' : 'center' }]}>{label}</Text>
-      {icon && !leadingIcon && (selectedIcon
-        ? <GuideStateIcon name={icon} selectedName={selectedIcon} selected={!!props.accessibilityState?.selected} color={color} size={16} />
-        : <GuideIcon name={icon} color={color} size={16} />)}
+      {icon && !leadingIcon && <GuideIcon name={icon} color={color} size={16} />}
     </GuidePressable>
   );
 }
@@ -459,7 +467,9 @@ export function RouteLink({ id, section }: { id: string; section?: string }) {
     }} />;
 }
 
-export function ExternalLink({ url, variant, ...appearance }: ButtonAppearance & { url: string; accessibilityLabel?: string }) {
+export function ExternalLink({ url, variant, compact = false, copyLabel, inlineCopy = false, ...appearance }: ButtonAppearance & {
+  url: string; accessibilityLabel?: string; compact?: boolean; copyLabel?: string; inlineCopy?: boolean;
+}) {
   const colors = useGuideColors();
   const { offline } = useGuideState();
   const display = url.replace(/^(tel:|mailto:)/, '');
@@ -511,21 +521,36 @@ export function ExternalLink({ url, variant, ...appearance }: ButtonAppearance &
 
   const tone = appearance.tone ?? 'accent';
   const featured = tone === 'onFeature';
+  const inline = inlineCopy && !!copyLabel && phoneOrEmail;
+  const copyColor = featured ? colors.onFeature : colors.accent;
   const link = variant ? <GuideButton {...appearance} variant={variant} {...linkProps} /> : (
     <GuidePressable {...linkProps} focusColor={featured ? colors.onFeature : undefined}
-      pressedColor={featured ? colors.featurePressed : colors.surfaceMuted} style={[
+      hitSlop={compact ? { top: 6, bottom: 6 } : undefined}
+      pressedColor={featured ? colors.featurePressed : 'transparent'} style={[
       styles.textLink,
+      compact && styles.compactTextLink,
       appearance.fullWidth && styles.fullWidth,
+      inline && styles.inlineLink,
       featured && { backgroundColor: colors.feature },
     ]}>
-      <GuideText type="support" tone={tone} style={styles.actionText}>{appearance.label}</GuideText>
+      <GuideText type={inline ? 'item' : 'support'} tone={tone} style={[styles.actionText, inline && styles.underlined]}>{appearance.label}</GuideText>
       {appearance.icon && <GuideIcon name={appearance.icon} color={colors[tone]} size={16} />}
     </GuidePressable>
   );
-  return <View>
-    {link}
-    {copied && <GuideText type="support" tone={featured ? 'onFeature' : 'foregroundMuted'}>Скопійовано</GuideText>}
-  </View>;
+  const confirmation = copied && <GuideText type="support" tone={featured ? 'onFeature' : 'foregroundMuted'}>Скопійовано</GuideText>;
+  const copyAction = copyLabel && phoneOrEmail && (
+    <GuidePressable accessibilityRole="button" accessibilityLabel={`${copyLabel}: ${appearance.label}`} onPress={copy}
+      focusColor={featured ? colors.onFeature : undefined} pressedColor={featured ? colors.featurePressed : undefined}
+      style={inline ? [styles.copyIconButton, {
+        backgroundColor: featured ? colors.feature : colors.background,
+        borderColor: featured ? colors.onFeature : colors.borderStrong,
+      }] : styles.textLink}>
+      <GuideIcon name={inline && copied ? 'check' : 'clipboard-text'} color={copyColor} size={inline ? 20 : 16} />
+      {!inline && <GuideText type="support" tone={featured ? 'onFeature' : 'accent'} style={styles.actionText}>{copyLabel}</GuideText>}
+    </GuidePressable>
+  );
+  if (inline) return <View style={styles.inlineCopyRow}>{link}{copyAction}</View>;
+  return compact ? <>{link}{copyAction}{confirmation}</> : <View>{link}{copyAction}{confirmation}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -534,17 +559,17 @@ const styles = StyleSheet.create({
   statusEdge: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 },
   sheet: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24, gap: 14 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  titleStack: { gap: 8 },
   sheetTitleRow: { paddingVertical: 8 },
+  sheetTitleAction: { alignSelf: 'flex-end' },
   titleText: { flex: 1 },
-  brand: { minHeight: 56, alignItems: 'flex-start', justifyContent: 'center' },
-  brandLogo: { width: 227, height: 56, maxWidth: '100%', resizeMode: 'contain' },
   grid: { gap: 8 },
   tilePair: { flexDirection: 'row', gap: 8 },
   list: { borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
   tile: { padding: 16, gap: 8, justifyContent: 'space-between', minHeight: 116, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
   tileColumn: { flex: 1 },
   tileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  iconTile: { width: 36, height: 36, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  iconTile: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   row: { alignItems: 'center', flexDirection: 'row', gap: 11, minHeight: 80, paddingHorizontal: 16, paddingVertical: 12 },
   rowText: { flex: 1, gap: 4 },
   panel: { gap: 8, padding: 16, borderRadius: 18, borderWidth: 1 },
@@ -553,6 +578,11 @@ const styles = StyleSheet.create({
   fullWidth: { alignSelf: 'stretch' },
   actionRow: { borderRadius: 14, justifyContent: 'space-between', paddingHorizontal: 16 },
   actionText: { flexShrink: 1 },
-  textLink: { minWidth: 44, minHeight: 44, maxWidth: '100%', paddingHorizontal: 4,
+  textLink: { minWidth: 44, minHeight: 44, maxWidth: '100%',
     flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 8, borderRadius: 10 },
+  compactTextLink: { minHeight: 32 },
+  inlineCopyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  inlineLink: { flexShrink: 1, alignSelf: 'center' },
+  underlined: { textDecorationLine: 'underline' },
+  copyIconButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });

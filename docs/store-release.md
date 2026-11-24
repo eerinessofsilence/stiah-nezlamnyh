@@ -53,15 +53,15 @@
 Перед збереженням нотаток підставте посилання на запис, який відкривається без входу. Використовуйте збірку, вибрану для повторного подання.
 
 ```text
-Guideline 2.1 — Review information for iOS 0.4.0 (build 4)
+Guideline 2.1 — Review information for iOS 0.5.0 (build 5)
 
 Screen recording on a physical iPhone: [VIDEO LINK]
 
 Purpose and audience: “Гід: Стяг незламних” is a free, independent Ukrainian-language guide for Ukrainian veterans, people with war-related disabilities, and their families. It helps them find the next step, prepare documents and find the responsible agency or local support contact.
 
 How to test:
-1. Launch the app and tap “Продовжити” (Continue). On “Налаштуйте гід” (Set up the guide), leave the name blank, select “Ветеран” (Veteran), and tap “Продовжити”. This is a preference stored on the device. The app has no accounts, paid features, or shared user content. No demo credentials or sample files are required.
-2. On “Головна” (Home), tap “Ветеран”, search for “УБД”, and open “Статус і документи” (Status and documents). Expand “Як отримати УБД” to see the steps and checklist for combatant status. Mark an item, tap “Зберегти маршрут” to bookmark the guide, and expand “Джерела й перевірка” at the bottom to see official sources.
+1. Launch the app to open “Головна” (Home). The app has no accounts, paid features, or shared user content. No demo credentials or sample files are required.
+2. On “Головна”, tap “Ветеран” (Veteran), search for “УБД”, and open “Статус і документи” (Status and documents). In “Як отримати УБД”, mark an item under “Що підготувати” (What to prepare). The check mark saves automatically. Expand “Джерела й перевірка” at the bottom to see official sources.
 3. Open “Помічник” (Assistant) and tap “Які документи потрібні для УБД?” to see how the assistant finds a relevant guide. Open “Контакти” (Contacts), type “Ізма”, and view the Izmail community contact.
 
 External services: The catalog, search, assistant and saved progress use bundled data and on-device storage. Core features work offline. The App Store build uses no backend, authentication provider, payment processor or external AI service. Cloudflare hosts the support and privacy pages. Users can choose to open public sources in the system browser.
@@ -76,9 +76,9 @@ Support: https://nezlamnyi.eerinessbusiness.workers.dev/support.html
 
 ### Запис для App Review і повторне подання
 
-1. Встановіть збірку `0.4.0 (4)` з TestFlight на фізичний iPhone з актуальною версією iOS. Перед записом перевірте сценарій із нотаток, запуск без мережі та збереження відмітки й закладки після перезапуску. З інтернетом відкрийте посилання на джерело, підтримку та політику конфіденційності.
+1. Встановіть збірку `0.5.0 (5)` з TestFlight на фізичний iPhone з актуальною версією iOS. Перед записом перевірте сценарій із нотаток, запуск без мережі та збереження відмітки після перезапуску. З інтернетом відкрийте посилання на джерело, підтримку та політику конфіденційності.
 2. На чистому встановленні почніть запис із домашнього екрана iPhone й відкрийте гід. Покажіть перший запуск, вибір статусу, пошук і картку з чек-листом та джерелами, відповідь «Характерника» й пошук контакту. Додайте посилання на відео до нотаток і перевірте його у приватному вікні браузера.
-3. У [поданні із зауваженням](https://appstoreconnect.apple.com/apps/6837277648/distribution/reviewsubmissions/details/18f1b39a-fc84-472e-85c5-6d72c2f258de) виберіть **Edit** біля версії. Збережіть поле **App Review Information → Notes**, натисніть **Add for Review** і поверніться до подання для **Resubmit to App Review**. Apple дозволяє повторно подати ту саму збірку, якщо зауваження стосується метаданих. [Кроки повторного подання](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/manage-a-submission-with-unresolved-issues) · [Повторне використання збірки](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/reply-to-app-review-messages)
+3. У [поданні із зауваженням](https://appstoreconnect.apple.com/apps/6837277648/distribution/reviewsubmissions/details/18f1b39a-fc84-472e-85c5-6d72c2f258de) виберіть **Edit** біля версії. Вказана в картці версія App Store має бути `0.5.0`. У секції **Build** виберіть збірку `5` і звірте скриншоти з цією збіркою. Збережіть **App Review Information → Notes**, натисніть **Add for Review** і завершіть подання через **Resubmit to App Review**. [Вибір збірки](https://developer.apple.com/help/app-store-connect/manage-builds/choose-a-build-to-submit/) · [Кроки повторного подання](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/manage-a-submission-with-unresolved-issues)
 
 ## Публічні сторінки та перевірка Release
 

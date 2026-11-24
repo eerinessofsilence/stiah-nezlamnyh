@@ -53,7 +53,8 @@
       "router": {
         "asyncRoutes": {
           "web": true
-        }
+        },
+        "redirects": [{ "source": "/welcome", "destination": "/", "permanent": true }]
       },
       "eas": {
         "projectId": "ee7e9fdd-a326-44c5-a393-b6a8c7723565"

@@ -28,6 +28,7 @@ export function StatusChoices({ selectedId, onChoose, variant = 'tiles' }: {
             accessibilityState={links ? undefined : { checked: selected }}
             accessibilityHint={links ? 'Відкриває послуги для цього статусу' : undefined}
             accessibilityLabel={item.title} onPress={() => onChoose(item.id, triggers.current[item.id] ?? null)}
+            animatePress={!links}
             pressedColor={selected ? colors.surface : colors.surfaceMuted}
             style={[styles.tile, !twoColumns && styles.fullWidth, rows && styles.row, {
               backgroundColor: selected ? colors.surfaceMuted : colors.surface,
@@ -56,6 +57,6 @@ const styles = StyleSheet.create({
   tileTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   row: { minHeight: 56, borderRadius: 14, paddingVertical: 8, justifyContent: 'center' },
   rowTitle: { flex: 1, marginHorizontal: 12 },
-  icon: { width: 36, height: 36, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  icon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   radioTarget: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

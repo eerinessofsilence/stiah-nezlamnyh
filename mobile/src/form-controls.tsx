@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react';
 import {
-  Animated, type HostInstance, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, type TextInstance, TextInput, View,
+  Animated, type HostInstance, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, type TextInstance, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,8 +9,10 @@ import { focusGuideControl, useGuideTransition, useReducedMotion } from './guide
 import { useGuideColors } from './theme';
 import { typography } from './typography';
 
-export function GuideInputFrame({ children, focused = false, radius = 10, style, transparent = false }: {
-  children: ReactNode; focused?: boolean; radius?: 8 | 10 | 16; style?: ComponentProps<typeof View>['style']; transparent?: boolean;
+const defaultInputRadius = 12;
+
+export function GuideInputFrame({ children, focused = false, radius = defaultInputRadius, style, transparent = false }: {
+  children: ReactNode; focused?: boolean; radius?: 10 | 12 | 18; style?: ComponentProps<typeof View>['style']; transparent?: boolean;
 }) {
   const colors = useGuideColors();
   return <View style={[styles.frame, {
@@ -19,11 +21,20 @@ export function GuideInputFrame({ children, focused = false, radius = 10, style,
   }, style]}>{children}</View>;
 }
 
-export function GuideInputPlaceholder({ children }: { children: string }) {
+// Use native font metrics so the hint and editable text have the same baseline.
+const { fontFamily, fontSize } = typography.body;
+
+export function GuideTextInput({ placeholder, compactPlaceholder, ...props }:
+  Omit<ComponentProps<typeof TextInput>, 'style' | 'multiline'> & { compactPlaceholder: string }) {
   const colors = useGuideColors();
-  return <View pointerEvents="none" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.placeholderWrap}>
-    <Text style={[typography.body, { color: colors.foregroundMuted }]}>{children}</Text>
-  </View>;
+  const { fontScale, width } = useWindowDimensions();
+  // UIKit shrinks a long hint to fit a single line, independently of the typed text.
+  const hint = fontScale >= 1.4 || (fontScale > 1 && width < 360) ? compactPlaceholder : placeholder;
+  return <TextInput {...props} accessibilityLanguage="uk" placeholder={hint} placeholderTextColor={colors.placeholder}
+    selectionColor={colors.accent} underlineColorAndroid="transparent"
+    style={[styles.input, {
+      minHeight: Math.ceil(typography.body.lineHeight * fontScale) + 12, color: colors.foreground,
+    }]} />;
 }
 
 export function GuideTextArea({ label, editable = true, ...props }: Pick<ComponentProps<typeof TextInput>,
@@ -36,9 +47,9 @@ export function GuideTextArea({ label, editable = true, ...props }: Pick<Compone
       <GuideInputFrame focused={editable && focused} style={!editable && styles.disabled}>
         <TextInput {...props} accessibilityLabel={label} accessibilityLanguage="uk" multiline textAlignVertical="top"
           editable={editable} accessibilityState={{ disabled: !editable }}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholderTextColor={colors.foregroundMuted}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholderTextColor={colors.placeholder}
           selectionColor={colors.accent} underlineColorAndroid="transparent"
-          style={[typography.body, styles.textArea, { color: colors.foreground }]} />
+          style={[styles.textArea, { color: colors.foreground }]} />
       </GuideInputFrame>
     </View>
   );
@@ -77,8 +88,9 @@ function GuideSheet({ title, open, onClose, children, trigger }: {
         <View accessibilityViewIsModal style={[styles.sheet, { backgroundColor: colors.surface, borderColor: colors.border, paddingBottom: Math.max(16, insets.bottom) }]}>
           <View style={styles.sheetHeader}>
             <GuideText type="sheetTitle" textRef={heading} style={styles.sheetTitle}>{title}</GuideText>
-            <GuidePressable accessibilityRole="button" accessibilityLabel="Закрити" onPress={onClose} style={styles.close}>
-              <GuideIcon name={icons.close} size={18} />
+            <GuidePressable accessibilityRole="button" accessibilityLabel="Закрити" onPress={onClose}
+              style={[styles.close, { backgroundColor: colors.background, borderColor: colors.iconButtonBorder, borderWidth: 1 }]}>
+              <GuideIcon name={icons.close} size={20} />
             </GuidePressable>
           </View>
           {children}
@@ -106,7 +118,7 @@ export function GuideSelect({ label, value, options, onChange, placeholder = 'О
           accessibilityState={{ disabled, expanded: open }} disabled={disabled}
           onPress={() => setOpen(true)} style={[styles.pressable, { backgroundColor: colors.surface, opacity: disabled ? 0.5 : 1 }]}>
           <GuideInputFrame focused={open} transparent style={styles.selectField}>
-            <Text style={[typography.body, styles.selectValue, { color: selected ? colors.foreground : colors.foregroundMuted }]}>
+            <Text style={[typography.body, styles.selectValue, { color: selected ? colors.foreground : colors.placeholder }]}>
               {selected?.label ?? placeholder}
             </Text>
             <GuideIcon name="caret-down" color={colors.foregroundMuted} size={20} />
@@ -164,17 +176,19 @@ export function GuideDatePicker({ label, value, onChange, placeholder = 'Обе�
           onPress={() => { setMonth(monthStart(value ?? new Date())); setOpen(true); }} style={[styles.pressable, { backgroundColor: colors.surface, opacity: disabled ? 0.5 : 1 }]}>
           <GuideInputFrame focused={open} transparent style={styles.selectField}>
             <GuideIcon name="calendar" color={colors.foregroundMuted} size={20} />
-            <Text style={[typography.body, styles.selectValue, { color: value ? colors.foreground : colors.foregroundMuted }]}>{selectedText}</Text>
+            <Text style={[typography.body, styles.selectValue, { color: value ? colors.foreground : colors.placeholder }]}>{selectedText}</Text>
           </GuideInputFrame>
         </GuidePressable>
       </View>
       <GuideSheet title={label} open={open} trigger={trigger} onClose={() => setOpen(false)}>
         <View style={styles.calendarHeader}>
-          <GuidePressable accessibilityRole="button" accessibilityLanguage="uk" accessibilityLabel="Попередній місяць" onPress={() => setMonth(current => new Date(current.getFullYear(), current.getMonth() - 1, 1))} style={styles.monthButton}>
+          <GuidePressable accessibilityRole="button" accessibilityLanguage="uk" accessibilityLabel="Попередній місяць" onPress={() => setMonth(current => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
+            style={[styles.monthButton, { backgroundColor: colors.background, borderColor: colors.iconButtonBorder }]}>
             <GuideIcon name={icons.back} />
           </GuidePressable>
           <Text style={[typography.item, styles.monthLabel, { color: colors.foreground }]}>{monthLabel}</Text>
-          <GuidePressable accessibilityRole="button" accessibilityLanguage="uk" accessibilityLabel="Наступний місяць" onPress={() => setMonth(current => new Date(current.getFullYear(), current.getMonth() + 1, 1))} style={styles.monthButton}>
+          <GuidePressable accessibilityRole="button" accessibilityLanguage="uk" accessibilityLabel="Наступний місяць" onPress={() => setMonth(current => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
+            style={[styles.monthButton, { backgroundColor: colors.background, borderColor: colors.iconButtonBorder }]}>
             <GuideIcon name={icons.next} />
           </GuidePressable>
         </View>
@@ -214,51 +228,34 @@ function CalendarDay({ date, selected, disabled, onPress }: {
   );
 }
 
-export function GuideRadioGroup({ label, value, options, onChange }: {
-  label: string; value: string | null; options: GuideChoice[]; onChange: (value: string) => void;
-}) {
-  const colors = useGuideColors();
-  return <View style={styles.fieldGroup}>
-    <GuideText type="item">{label}</GuideText>
-    <View accessibilityRole="radiogroup" accessibilityLabel={label} style={styles.radioGroup}>
-      {options.map(option => {
-        const selected = option.value === value;
-        return <GuidePressable key={option.value} accessibilityRole="radio" accessibilityLanguage="uk" accessibilityLabel={option.label}
-          accessibilityState={{ checked: selected, disabled: option.disabled }} disabled={option.disabled}
-          onPress={() => onChange(option.value)} style={[styles.option, { borderBottomColor: colors.border, opacity: option.disabled ? 0.5 : 1 }]}>
-          <View style={styles.optionCopy}>
-            <GuideText type="item">{option.label}</GuideText>
-            {option.description && <GuideText type="support" tone="foregroundMuted">{option.description}</GuideText>}
-          </View>
-          <GuideRadioMark selected={selected} />
-        </GuidePressable>;
-      })}
-    </View>
-  </View>;
-}
-
 export function GuideCheckbox({ label, value, onValueChange, disabled = false, style }: {
   label: string; value: boolean; onValueChange: (value: boolean) => void; disabled?: boolean; style?: ComponentProps<typeof View>['style'];
 }) {
   const colors = useGuideColors();
   const checkOpacity = useGuideTransition(value ? 1 : 0);
-  return <GuidePressable accessibilityRole="checkbox" accessibilityLabel={label} accessibilityState={{ checked: value, disabled }}
-    disabled={disabled} onPress={() => onValueChange(!value)}
-    style={[styles.option, styles.checkboxRow, style, { opacity: disabled ? 0.55 : 1 }]}>
-    <View style={[styles.checkbox, { borderColor: value ? colors.accent : colors.borderStrong, backgroundColor: value ? colors.button : colors.surface }]}>
-      <Animated.View style={{ opacity: checkOpacity }}><GuideIcon name="check" color={colors.onAccent} size={16} /></Animated.View>
-    </View>
-    <GuideText type="support" style={styles.optionCopy}>{label}</GuideText>
-  </GuidePressable>;
+  return <View>
+    <GuidePressable accessibilityRole="checkbox" accessibilityLabel={label} accessibilityState={{ checked: value, disabled }}
+      disabled={disabled} onPress={() => onValueChange(!value)}
+      style={[styles.option, styles.checkboxRow, style, { opacity: disabled ? 0.55 : 1 }]}>
+      <View style={[styles.checkbox, { borderColor: value ? colors.accent : colors.borderStrong, backgroundColor: value ? colors.button : colors.surface }]}>
+        <Animated.View style={{ opacity: checkOpacity }}><GuideIcon name="check" color={colors.onAccent} size={16} /></Animated.View>
+      </View>
+      <GuideText type="support" style={styles.optionCopy}>{label}</GuideText>
+    </GuidePressable>
+    <View pointerEvents="none" style={[styles.checkboxDivider, { backgroundColor: colors.borderStrong }]} />
+  </View>;
 }
 
-export function GuideSwitch({ value, onValueChange, accessibilityLabel, disabled }: {
+export function GuideSwitch({ value, onValueChange, accessibilityLabel, disabled, style }: {
   value: boolean; onValueChange: (value: boolean) => void; accessibilityLabel: string; disabled?: boolean;
+  style?: ComponentProps<typeof Switch>['style'];
 }) {
   const colors = useGuideColors();
+  const ios = Platform.OS === 'ios';
   return <Switch accessibilityLabel={accessibilityLabel} accessibilityLanguage="uk" value={value} onValueChange={onValueChange} disabled={disabled}
-    trackColor={{ false: colors.surfaceMuted, true: colors.accent }} thumbColor={colors.surface}
-    ios_backgroundColor={colors.surfaceMuted} style={{ minHeight: 44 }} />;
+    trackColor={{ false: colors.switchTrackOff, true: colors.accent }} thumbColor={colors.surface}
+    ios_backgroundColor={colors.switchTrackOff} hitSlop={ios ? 8 : undefined}
+    style={[ios ? undefined : { minHeight: 44 }, style]} />;
 }
 
 export function GuideRadioMark({ selected }: { selected: boolean }) {
@@ -276,9 +273,9 @@ function dayEnd(date: Date) { return new Date(date.getFullYear(), date.getMonth(
 const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   frame: { minHeight: 52, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12 },
-  placeholderWrap: { position: 'absolute', left: 0, right: 8, top: 0, bottom: 0, justifyContent: 'center', transform: [{ translateY: 2 }] },
-  textArea: { flex: 1, minHeight: 120, paddingVertical: 12, includeFontPadding: false },
-  pressable: { alignSelf: 'stretch', borderRadius: 10 },
+  input: { flex: 1, alignSelf: 'stretch', minWidth: 0, fontFamily, fontSize, padding: 0, includeFontPadding: false, textAlignVertical: 'center' },
+  textArea: { flex: 1, minHeight: 120, fontFamily, fontSize, paddingVertical: 12, includeFontPadding: false },
+  pressable: { alignSelf: 'stretch', borderRadius: defaultInputRadius },
   selectField: { width: '100%', gap: 8, paddingVertical: 8 },
   fieldGroup: { gap: 4 },
   selectValue: { flex: 1, minWidth: 0 },
@@ -293,16 +290,16 @@ const styles = StyleSheet.create({
   optionCopy: { flex: 1 },
   done: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   calendarHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  monthButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  monthButton: { width: 44, height: 44, borderWidth: 1, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   monthLabel: { textTransform: 'capitalize' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -16 },
   weekday: { width: '14.2857%', height: 36, textAlign: 'center', textAlignVertical: 'center' },
   dayCell: { width: '14.2857%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
   dayButton: { borderRadius: 24, overflow: 'hidden' },
   daySelection: { position: 'absolute', top: 4, right: 4, bottom: 4, left: 4, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  radioGroup: { gap: 4 },
   radio: { width: 22, height: 22, borderWidth: 2, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 10, height: 10, borderRadius: 5 },
-  checkboxRow: { minHeight: 56, borderBottomWidth: 0 },
+  checkboxRow: { paddingHorizontal: 0, borderBottomWidth: 0 },
+  checkboxDivider: { position: 'absolute', top: 0, left: 0, right: 0, height: StyleSheet.hairlineWidth },
   checkbox: { width: 24, height: 24, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 });

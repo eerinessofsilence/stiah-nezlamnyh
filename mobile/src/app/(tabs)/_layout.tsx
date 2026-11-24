@@ -1,11 +1,10 @@
-import { Redirect, Tabs, usePathname } from 'expo-router';
+import { Tabs } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { NativeTabs } from 'expo-router/native-tabs';
 import { Animated, StyleSheet, View } from 'react-native';
 
 import { GuideStateIcon, GuidePressable, hasNativeHomeTabs } from '../../guide';
 import { guideIconSources } from '../../guide-icons';
-import { useGuideState } from '../../guide-state';
 import { useGuideTransition } from '../../guide-motion';
 import { useGuideColors } from '../../theme';
 import { typography } from '../../typography';
@@ -20,10 +19,6 @@ const tabs = [
 
 export default function TabsLayout() {
   const colors = useGuideColors();
-  const { hasSeenWelcome } = useGuideState();
-  const pathname = usePathname();
-
-  if (!hasSeenWelcome && pathname === '/') return <Redirect href="/welcome" />;
 
   if (!hasNativeHomeTabs) {
     return (
@@ -35,7 +30,7 @@ export default function TabsLayout() {
 
   return (
     <NativeTabs activityEnabled backBehavior="initialRoute" tintColor={colors.accent}
-      labelStyle={{ default: { fontWeight: '500' }, selected: { fontWeight: '600' } }}
+      labelStyle={{ default: { fontWeight: '600' }, selected: { fontWeight: '700' } }}
       iconColor={{ default: colors.foregroundMuted, selected: colors.accent }}
       minimizeBehavior="never">
       {tabs.map(({ name, label, icon, selectedIcon }) => (
@@ -94,7 +89,7 @@ function HomeTabLabel({ tab, selected }: { tab: typeof tabs[number]; selected: b
     <GuideStateIcon size={24} name={tab.icon} selectedName={tab.selectedIcon} selected={selected}
       color={colors.foregroundMuted} selectedColor={colors.accent} />
     <Animated.Text maxFontSizeMultiplier={2}
-      style={[selected ? typography.number : typography.meta, styles.label, { color, fontWeight: selected ? '600' : '500' }]}>
+      style={[selected ? typography.number : typography.meta, styles.label, { color, fontWeight: selected ? '700' : '600' }]}>
       {tab.label}
     </Animated.Text>
   </>;

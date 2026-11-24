@@ -4,8 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { checkedOn, type GuideSection, preparation, services } from '../../data/catalog';
 import { GuideButton, GuideIcon, GuidePanel, GuidePressable, GuideScreen, GuideText, icons, ServiceList } from '../../guide';
 import { GuideDisclosure } from '../../guide-disclosure';
-import { useGuideState } from '../../guide-state';
-import { BookmarkButton, ProgressUnavailable, RouteAction, RouteChecklist, RouteSources } from '../../route-actions';
+import { RouteAction, RouteChecklist, RouteSources } from '../../route-actions';
 import { useGuideColors } from '../../theme';
 
 export default function ServiceScreen() {
@@ -14,13 +13,16 @@ export default function ServiceScreen() {
   const { id, section, returnTo, view } = useLocalSearchParams<{
     id: string; section?: string; returnTo?: string; view?: string;
   }>();
-  const { progress } = useGuideState();
   const service = services.find(item => item.id === id);
   const close = (
     <GuidePressable accessibilityRole="button" accessibilityLabel="Повернутися до послуг"
       onPress={() => returnTo === '/services-modal' ? router.replace('/services-modal') : router.canGoBack() ? router.back() : router.replace('/services')}
-      pressedColor={colors.surface} style={[styles.close, { backgroundColor: colors.surfaceSoft }]}>
-      <GuideIcon name={icons.back} size={18} />
+      style={[styles.close, {
+        backgroundColor: colors.surface,
+        borderColor: colors.iconButtonBorder,
+        borderWidth: 1,
+      }]}>
+      <GuideIcon name={icons.back} size={20} />
     </GuidePressable>
   );
 
@@ -41,10 +43,11 @@ export default function ServiceScreen() {
   if (view === 'topic' && active) {
     return (
       <GuideScreen title={active.title} titleAction={close}>
-        <SectionContent section={active} checklistFor={checklistFor(active)} />
-        {progress ? <BookmarkButton id={id} /> : <ProgressUnavailable />}
+        <GuidePanel>
+          <SectionContent section={active} checklistFor={checklistFor(active)} />
+        </GuidePanel>
         <RouteSources key={service.id} sourceKeys={references} />
-        <GuideText type="meta" tone="foregroundMuted">Редакція від {checkedOn}</GuideText>
+        <GuideText type="support" tone="foregroundMuted">Редакція від {checkedOn}</GuideText>
       </GuideScreen>
     );
   }
@@ -54,7 +57,6 @@ export default function ServiceScreen() {
       <GuideText type="support" tone="foregroundMuted">{service.desc}</GuideText>
       {active && <SectionCard key={id + active.id} section={active} checklistFor={checklistFor(active)} initiallyOpen />}
       <RouteAction action={service.action} primary />
-      {progress ? <BookmarkButton id={id} /> : <ProgressUnavailable />}
       <GuidePanel tone="surfaceSoft">
         <GuideText heading>З чого почати</GuideText>
         {service.steps.map((step, index) => (
@@ -74,7 +76,7 @@ export default function ServiceScreen() {
       <GuideText heading>Пов’язані маршрути</GuideText>
       <ServiceList items={service.related.flatMap(relatedId => services.filter(item => item.id === relatedId))} />
       <RouteSources key={service.id} sourceKeys={references} />
-      <GuideText type="meta" tone="foregroundMuted">Редакція від {checkedOn}</GuideText>
+      <GuideText type="support" tone="foregroundMuted">Редакція від {checkedOn}</GuideText>
     </GuideScreen>
   );
 }
@@ -91,11 +93,11 @@ function SectionCard({ section, checklistFor, initiallyOpen = false }: {
 
 function SectionContent({ section, checklistFor }: { section: GuideSection; checklistFor?: string }) {
   return (
-    <GuidePanel>
+    <>
       {section.paragraphs.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)}
       <RouteAction action={section.action} />
       {checklistFor && <RouteChecklist id={checklistFor} />}
-    </GuidePanel>
+    </>
   );
 }
 

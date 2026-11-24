@@ -4,8 +4,8 @@ import { AccessibilityInfo, Animated, Easing, type HostInstance } from 'react-na
 export const motion = {
   feedback: 120,
   appear: 160,
-  collapse: 160,
-  expand: 200,
+  collapse: 220,
+  expand: 300,
   logo: 320,
   splash: 300,
   easeOut: Easing.bezier(0, 0, 0.58, 1),

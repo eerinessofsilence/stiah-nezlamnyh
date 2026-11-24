@@ -47,7 +47,6 @@ function GuideNavigation() {
       <GuideProvider>
         <Stack screenOptions={{ statusBarStyle: darkMode ? 'light' : 'dark' }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false, scrollEdgeEffects: { top: 'hidden', bottom: 'soft' } }} />
-          <Stack.Screen name="welcome" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={sheetOptions} />

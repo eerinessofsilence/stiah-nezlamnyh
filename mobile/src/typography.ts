@@ -11,9 +11,9 @@ export const typography = StyleSheet.create({
   sheetTitle: { fontFamily: 'GuideRegular', fontSize: 24, lineHeight: 30, letterSpacing: -0.6 },
   section: { fontFamily: 'GuideMedium', fontSize: 20, lineHeight: 26 },
   item: { fontFamily: 'GuideMedium', fontSize: 16, lineHeight: 22 },
-  body: { fontFamily: 'GuideRegular', fontSize: 16, lineHeight: 24 },
-  tile: { fontFamily: 'GuideMedium', fontSize: 14, lineHeight: 20 },
-  support: { fontFamily: 'GuideRegular', fontSize: 14, lineHeight: 20 },
+  body: { fontFamily: 'GuideRegular', fontSize: 16, lineHeight: 22 },
+  tile: { fontFamily: 'GuideMedium', fontSize: 14, lineHeight: 19 },
+  support: { fontFamily: 'GuideRegular', fontSize: 14, lineHeight: 19 },
   meta: { fontFamily: 'GuideRegular', fontSize: 12, lineHeight: 16 },
   number: { fontFamily: 'GuideMedium', fontSize: 12, lineHeight: 16 },
 });

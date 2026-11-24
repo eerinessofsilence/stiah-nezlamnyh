@@ -1,11 +1,11 @@
 :root {
   color-scheme: light dark;
   --canvas: #f0f0e6;
-  --surface: #fbfbf6;
+  --surface: #ffffff;
   --ink: #202319;
-  --muted: #59604f;
-  --accent: #566143;
-  --line: #e2e3d8;
+  --muted: #404737;
+  --accent: #344b22;
+  --line: #c6ccbb;
   font: 100%/1.5 system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {

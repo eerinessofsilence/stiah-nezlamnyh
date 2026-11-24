@@ -5,5 +5,5 @@ import { ProfileForm } from '../profile-form';
 
 export default function ProfileScreen() {
   const { profile } = useGuideState();
-  return profile ? <ProfileForm editing /> : <Redirect href="/welcome" />;
+  return profile ? <ProfileForm editing /> : <Redirect href="/(tabs)" />;
 }

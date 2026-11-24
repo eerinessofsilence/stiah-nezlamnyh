@@ -6,7 +6,6 @@ import { ExternalLink, GuideButton, GuidePanel, GuideText, icons } from './guide
 import { GuideDisclosure } from './guide-disclosure';
 import { GuideCheckbox } from './form-controls';
 import { useGuideState } from './guide-state';
-import { useGuideColors } from './theme';
 
 export function RouteAction({ action, primary = false }: { action?: string[]; primary?: boolean }) {
   const router = useRouter();
@@ -17,7 +16,7 @@ export function RouteAction({ action, primary = false }: { action?: string[]; pr
     return <GuideButton label={label} accessibilityRole="link" variant={variant} fullWidth icon={icons.arrow}
       onPress={() => { if (router.canDismiss()) router.dismissAll(); router.navigate('/contacts'); }} />;
   }
-  return <ExternalLink url={sources[destination]?.[1] ?? destination} label={label} variant={variant} fullWidth
+  return <ExternalLink url={sources[destination]?.[1] ?? destination} label={label} variant={primary ? 'primary' : undefined} fullWidth
     icon={destination.startsWith('tel:') ? icons.phone : icons.external} />;
 }
 
@@ -29,7 +28,6 @@ export function RouteSources({ sourceKeys }: { sourceKeys: string[] }) {
         return source && (
           <View key={key}>
             <ExternalLink url={source[1]} label={source[0]} tone="accent" icon={icons.external} />
-            <GuideText type="meta" tone="foregroundMuted">Посилання перевірено {source[2]}</GuideText>
           </View>
         );
       })}
@@ -37,41 +35,8 @@ export function RouteSources({ sourceKeys }: { sourceKeys: string[] }) {
   );
 }
 
-export function ProgressUnavailable() {
-  const { retryProgress } = useGuideState();
-
-  return (
-    <GuidePanel>
-      <GuideText>Не вдалося відкрити збережене.</GuideText>
-      <GuideButton label="Спробувати ще раз" onPress={retryProgress} />
-    </GuidePanel>
-  );
-}
-
-export function BookmarkButton({ id }: { id: string }) {
-  const { progress, toggle } = useGuideState();
-  const saved = progress?.saved.includes(id) ?? false;
-
-  return (
-    <GuideButton
-      label={saved ? 'Збережено' : 'Зберегти маршрут'}
-      row
-      icon="bookmark"
-      selectedIcon="bookmark-fill"
-      accessibilityHint={saved ? 'Прибрати маршрут зі збереженого' : undefined}
-      accessibilityState={{ selected: saved, disabled: !progress }}
-      disabled={!progress}
-      onPress={() => {
-        const next = toggle('saved', id);
-        if (next) AccessibilityInfo.announceForAccessibility(next.saved.includes(id) ? 'Маршрут збережено' : 'Маршрут прибрано зі збереженого');
-      }}
-    />
-  );
-}
-
 export function RouteChecklist({ id }: { id: string }) {
-  const { progress, toggle } = useGuideState();
-  const colors = useGuideColors();
+  const { progress, retryProgress, toggleChecked } = useGuideState();
   const checklist = preparation[id];
   if (!checklist) return null;
 
@@ -85,14 +50,16 @@ export function RouteChecklist({ id }: { id: string }) {
   return (
     <GuidePanel tone="surfaceSoft" style={styles.checklist}>
       <GuideText type="section">Що підготувати</GuideText>
-      <GuideText type="meta" tone="foregroundMuted">{checklist.note}</GuideText>
-      {progress && <GuideText type="meta" tone="foregroundMuted">{progressLabel(progress.checked)}</GuideText>}
+      {progress ? <GuideText type="number" tone="foregroundMuted">{progressLabel(progress.checked)}</GuideText> : <>
+        <GuideText>Не вдалося відкрити відмітки.</GuideText>
+        <GuideButton label="Спробувати ще раз" onPress={retryProgress} />
+      </>}
       {items.map(({ itemId, label, checked }) => (
         <GuideCheckbox key={itemId} label={label} value={checked} disabled={!progress}
           onValueChange={() => {
-            const next = toggle('checked', itemId);
+            const next = toggleChecked(itemId);
             if (next) AccessibilityInfo.announceForAccessibility(progressLabel(next.checked));
-          }} style={[styles.item, { borderTopColor: colors.borderStrong }]} />
+          }} style={styles.item} />
       ))}
     </GuidePanel>
   );
@@ -100,5 +67,5 @@ export function RouteChecklist({ id }: { id: string }) {
 
 const styles = StyleSheet.create({
   checklist: { gap: 8 },
-  item: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
+  item: { minHeight: 48 },
 });

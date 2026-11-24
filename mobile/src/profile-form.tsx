@@ -1,15 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GuideButton, guideContentInset, guideContentMaxWidth, GuideScreen, GuideText } from './guide';
 import type { GuideProfile } from './guide-profile';
 import { useGuideState } from './guide-state';
 import { StatusChoices } from './status-choices';
-import { GuideInputFrame, GuideInputPlaceholder } from './form-controls';
+import { GuideInputFrame, GuideTextInput } from './form-controls';
 import { useGuideColors } from './theme';
-import { typography } from './typography';
 
 export function ProfileForm({ editing = false }: { editing?: boolean }) {
   const router = useRouter();
@@ -31,8 +30,10 @@ export function ProfileForm({ editing = false }: { editing?: boolean }) {
   const nameField = (
     <View style={styles.nameField}>
       <GuideText type="item">Ваше ім’я</GuideText>
-      <GuideInputFrame focused={focused} style={styles.inputFrame}><View style={styles.inputWrap}><TextInput
-        accessibilityLabel="Ваше ім’я"
+      <GuideInputFrame focused={focused}><GuideTextInput
+        accessibilityLabel="Ваше ім’я, необов’язково"
+        placeholder="Необов’язково"
+        compactPlaceholder="Ім’я"
         autoCapitalize="words"
         autoCorrect={false}
         autoComplete="given-name"
@@ -41,8 +42,7 @@ export function ProfileForm({ editing = false }: { editing?: boolean }) {
         onChangeText={setName}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        style={[typography.body, styles.input, { color: colors.foreground }]}
-      />{name === '' && <GuideInputPlaceholder>Необов’язково</GuideInputPlaceholder>}</View></GuideInputFrame>
+      /></GuideInputFrame>
     </View>
   );
 
@@ -76,8 +76,5 @@ export function ProfileForm({ editing = false }: { editing?: boolean }) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   nameField: { gap: 8, marginBottom: 4 },
-  inputFrame: { minHeight: 52 },
-  inputWrap: { flex: 1, minWidth: 0, minHeight: 50, justifyContent: 'center' },
-  input: { flex: 1, alignSelf: 'stretch', minHeight: 50, paddingTop: 0, paddingBottom: 10, includeFontPadding: false, textAlignVertical: 'center' },
   footer: { width: '100%', maxWidth: guideContentMaxWidth, alignSelf: 'center', paddingHorizontal: guideContentInset, paddingVertical: 8 },
 });

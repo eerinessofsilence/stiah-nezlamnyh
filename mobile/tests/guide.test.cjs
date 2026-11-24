@@ -164,27 +164,21 @@ test('urgent scenarios, colloquial search and local contacts are discoverable', 
   assert.equal(findContacts(localContacts, 'релевантного немає').length, 0);
 });
 
-test('progress round-trips with stable IDs and survives removing a bookmark', () => {
-  const ids = new Set(services.map(({ id }) => id));
+test('checklist marks round-trip with stable IDs and load from legacy progress', () => {
   const items = new Set(Object.entries(preparation).flatMap(([id, checklist]) => checklist.items.map(([key]) => `${id}:${key}`)));
-  const empty = { saved: [], checked: [] };
-  let progress = readProgress(null, ids, items);
-  assert.deepEqual(progress, empty);
-  progress = toggleProgress(progress, 'saved', 'rehab');
-  progress = toggleProgress(progress, 'checked', 'rehab:identity');
-  assert.deepEqual(readProgress(JSON.stringify(progress), ids, items), progress);
-  progress = toggleProgress(progress, 'saved', 'rehab');
-  assert.deepEqual(progress, { saved: [], checked: ['rehab:identity'] });
-  assert.deepEqual(readProgress('{', ids, items), empty);
-  const status = toggleProgress(empty, 'checked', 'status:ubd:application');
-  assert.deepEqual(readProgress(JSON.stringify(status), ids, items), status);
+  const empty = { checked: [] };
+  assert.deepEqual(readProgress(null, items), empty);
+  assert.deepEqual(readProgress('{', items), empty);
+  const status = readProgress('{"saved":["status"],"checked":["status:ubd:application","status:ubd:application","status:unknown",null]}', items);
+  assert.deepEqual(status, { checked: ['status:ubd:application'] });
+  const progress = toggleProgress(status, 'rehab:identity');
+  assert.deepEqual(progress, { checked: ['status:ubd:application', 'rehab:identity'] });
+  assert.deepEqual(readProgress(JSON.stringify(progress), items), progress);
+  assert.deepEqual(toggleProgress(progress, 'rehab:identity'), status);
   const summary = routeProgressSummary('status', preparation, status.checked);
   assert.equal(summary.section, 'ubd');
   assert.equal(summary.completed, 1);
   assert.equal(summary.total, 3);
-  assert.deepEqual(readProgress('{"saved":["status","status","unknown",null],"checked":["status:unknown"]}', ids, items), {
-    saved: ['status'], checked: [],
-  });
 });
 
 test('all four contact cards point to an official source and a dialable number', () => {

@@ -6,8 +6,6 @@ export const guideIconSources = {
   assistant: require('../assets/tabs/assistant.png'),
   'assistant-fill': require('../assets/tabs/assistant-selected.png'),
   bandaids: require('../assets/phosphor/bandaids.png'),
-  bookmark: require('../assets/phosphor/bookmark.png'),
-  'bookmark-fill': require('../assets/phosphor/bookmark-fill.png'),
   briefcase: require('../assets/phosphor/briefcase.png'),
   calendar: require('../assets/phosphor/calendar.png'),
   'caret-down': require('../assets/phosphor/caret-down.png'),

@@ -33,8 +33,12 @@ export default function ServicesModal() {
         Keyboard.dismiss();
         if (router.canGoBack()) router.back();
         else router.replace('/');
-      }} pressedColor={colors.surface} style={[styles.close, { backgroundColor: colors.surfaceSoft }]}>
-        <GuideIcon name={icons.close} size={18} />
+      }} style={[styles.close, {
+        backgroundColor: colors.background,
+        borderColor: colors.iconButtonBorder,
+        borderWidth: 1,
+      }]}>
+        <GuideIcon name={icons.close} size={20} />
       </GuidePressable>}>
       <SearchField value={query} onChange={setQuery} label={showSections ? 'Пошук за темами' : 'Пошук послуг'} />
       {results.length > 0 ? <ServiceList items={results} tiles

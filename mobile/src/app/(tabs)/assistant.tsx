@@ -1,18 +1,16 @@
 import { useIsFocused } from 'expo-router/react-navigation';
 import { Fragment, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, type ScrollViewInstance, StyleSheet, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Animated, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, type ScrollViewInstance, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-screens/experimental';
 
 import { preparation, services } from '../../data/catalog';
 import { hotline, localContacts } from '../../data/contacts';
 import { ExternalLink, GuideButton, guideContentInset, guideContentMaxWidth, GuideIcon, GuidePanel, GuidePressable, GuideScreen, GuideText, hasNativeHomeTabs, icons, RouteLink } from '../../guide';
-import { useGuideState } from '../../guide-state';
-import { BookmarkButton, ProgressUnavailable, RouteAction, RouteSources } from '../../route-actions';
+import { RouteAction, RouteSources } from '../../route-actions';
 import { type AnswerChoice, answerSections, findContacts, localAnswers } from '../../search';
-import { GuideInputFrame, GuideInputPlaceholder } from '../../form-controls';
+import { GuideInputFrame, GuideTextInput } from '../../form-controls';
 import { useGuideColors } from '../../theme';
-import { typography } from '../../typography';
 import { replyPresentation } from '../../assistant-reply';
 import { motion, useReducedMotion } from '../../guide-motion';
 
@@ -23,6 +21,7 @@ const prompts = [
   'Що робити після поранення?',
 ];
 type Turn = { id: number; question: string; answers: AnswerChoice[] };
+const composerRadius = 18;
 
 export default function AssistantScreen() {
   const colors = useGuideColors();
@@ -108,10 +107,12 @@ export default function AssistantScreen() {
 
   const canSend = question.trim().length > 0;
   const composer = (
-    <View style={styles.composer}>
-      <GuideInputFrame focused={composerFocused} radius={16} style={styles.composerRow}>
-        <View style={styles.inputWrap}><TextInput
+    <View style={[styles.composer, { backgroundColor: colors.background }]}>
+      <GuideInputFrame focused={composerFocused} radius={composerRadius} style={styles.composerRow}>
+        <GuideTextInput
           accessibilityLabel="Запитання Характернику"
+          placeholder="Напишіть запитання"
+          compactPlaceholder="Запит"
           value={question}
           onChangeText={setQuestion}
           onFocus={() => setComposerFocused(true)}
@@ -120,8 +121,7 @@ export default function AssistantScreen() {
           returnKeyType="send"
           onSubmitEditing={({ nativeEvent }) => submit(nativeEvent.text)}
           maxLength={500}
-          style={[typography.body, styles.input, { color: colors.foreground }]}
-        />{question === '' && <GuideInputPlaceholder>Напишіть запитання</GuideInputPlaceholder>}</View>
+        />
         <GuidePressable accessibilityRole="button" accessibilityLabel="Надіслати запитання"
           focusColor={colors.onFeature} pressedColor={colors.featurePressed}
           accessibilityState={{ disabled: !canSend }} disabled={!canSend} onPress={() => submit(question)}
@@ -206,7 +206,6 @@ function ReplyAppearance({ pending, onReveal, children }: { pending: boolean; on
 }
 
 function AssistantAnswer({ turn, onChoose }: { turn: Turn; onChoose: (choice: AnswerChoice) => void }) {
-  const { progress } = useGuideState();
   if (turn.answers.length > 1) {
     return (
       <GuidePanel>
@@ -248,7 +247,6 @@ function AssistantAnswer({ turn, onChoose }: { turn: Turn; onChoose: (choice: An
         row icon={icons.arrow} onPress={() => onChoose({ route: service.id, section: item.id })} />)}
       <RouteAction action={section?.action ?? service.action} />
       <RouteLink id={service.id} section={section?.id} />
-      {progress ? <BookmarkButton id={service.id} /> : <ProgressUnavailable />}
       <RouteSources key={service.id + (section?.id ?? '')}
         sourceKeys={[...new Set([...service.source, checklist?.source, local ? local.source : undefined].filter(key => key !== undefined))]} />
     </GuidePanel>
@@ -264,9 +262,7 @@ const styles = StyleSheet.create({
   question: { alignSelf: 'flex-end', borderRadius: 16, maxWidth: '90%', padding: 12 },
   docked: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   footer: { paddingHorizontal: guideContentInset },
-  composer: { width: '100%', maxWidth: guideContentMaxWidth - 2 * guideContentInset, alignSelf: 'center', marginBottom: 12 },
-  composerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, borderWidth: 1, padding: 4 },
-  inputWrap: { flex: 1, minWidth: 0, minHeight: 52, justifyContent: 'center' },
-  input: { flex: 1, alignSelf: 'stretch', minHeight: 52, paddingHorizontal: 8, paddingTop: 0, paddingBottom: 10, includeFontPadding: false, textAlignVertical: 'center' },
+  composer: { width: '100%', maxWidth: guideContentMaxWidth - 2 * guideContentInset, alignSelf: 'center', marginBottom: 12, borderRadius: composerRadius },
+  composerRow: { gap: 8, paddingVertical: 4, paddingLeft: 12, paddingRight: 4 },
   send: { width: 52, height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });
