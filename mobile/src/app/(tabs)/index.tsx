@@ -32,7 +32,7 @@ export default function HomeScreen() {
 
   return (
     <GuideScreen>
-      <GuideLogo style={{ alignSelf: 'flex-start' }} />
+      <GuideLogo style={{ alignSelf: 'flex-start', width: 272, height: 67.2, maxWidth: '100%' }} />
       <GuideText type="title">Оберіть статус</GuideText>
       <StatusChoices selectedId={profile?.statusId ?? null} onChoose={openStatus} variant="links" />
       <GuideButton label="Не знаю, з чого почати" row icon={icons.arrow}
