@@ -57,8 +57,8 @@ export function GuideTextArea({ label, editable = true, ...props }: Pick<Compone
 
 export type GuideChoice = { label: string; value: string; description?: string; disabled?: boolean };
 
-function GuideSheet({ title, open, onClose, children, trigger }: {
-  title: string; open: boolean; onClose: () => void; children: ReactNode; trigger?: RefObject<HostInstance | null>;
+export function GuideSheet({ title, open, onClose, children, trigger, doneLabel = 'Готово' }: {
+  title: string; open: boolean; onClose: () => void; children: ReactNode; trigger?: RefObject<HostInstance | null>; doneLabel?: string;
 }) {
   const colors = useGuideColors();
   const insets = useSafeAreaInsets();
@@ -94,8 +94,8 @@ function GuideSheet({ title, open, onClose, children, trigger }: {
             </GuidePressable>
           </View>
           {children}
-          <GuidePressable accessibilityRole="button" accessibilityLabel="Готово" onPress={onClose} style={styles.done}>
-            <Text style={[typography.item, { color: colors.accent }]}>Готово</Text>
+          <GuidePressable accessibilityRole="button" accessibilityLabel={doneLabel} onPress={onClose} style={styles.done}>
+            <Text style={[typography.item, { color: colors.accent }]}>{doneLabel}</Text>
           </GuidePressable>
         </View>
       </View>

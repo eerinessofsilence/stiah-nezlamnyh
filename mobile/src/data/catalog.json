@@ -507,6 +507,11 @@
           "action": [
             "combatantApply",
             "Знайти комісію та бланки"
+          ],
+          "source": [
+            "combatantOrder",
+            "combatantApply",
+            "legalAid"
           ]
         },
         {
@@ -521,6 +526,10 @@
           "action": [
             "combatantApply",
             "Відкрити бланки УБД"
+          ],
+          "source": [
+            "combatantOrder",
+            "combatantApply"
           ]
         },
         {
@@ -535,6 +544,10 @@
           "action": [
             "disabilityApply",
             "Подати заяву в Дії"
+          ],
+          "source": [
+            "disabilityApply",
+            "disabilityStatus"
           ]
         },
         {
@@ -548,6 +561,10 @@
           "action": [
             "diiaCorrection",
             "Уточнити дані в Мінветеранів"
+          ],
+          "source": [
+            "diia",
+            "diiaCorrection"
           ]
         }
       ],
@@ -1840,6 +1857,10 @@
           "action": [
             "tel:0800213103",
             "Перевірити строк у БПД"
+          ],
+          "source": [
+            "vlkGuide",
+            "legalAid"
           ]
         }
       ],
@@ -1936,6 +1957,10 @@
           "action": [
             "functionCenter",
             "Адреса Центру та порядок подання"
+          ],
+          "source": [
+            "functionAppeal",
+            "functionCenter"
           ]
         }
       ],
@@ -2585,5 +2610,6 @@
       "dial": "tel:+380937584168",
       "source": "districtContacts"
     }
-  ]
+  ],
+  "revision": "400b39c6c1702bd4816e521965d2a268c2737b95ab98944a1d3672377a83464e"
 }

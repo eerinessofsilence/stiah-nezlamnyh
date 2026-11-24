@@ -5,6 +5,7 @@ export type GuideSection = {
   title: string;
   keys: string;
   paragraphs: string[];
+  source?: string[];
   action?: string[];
 };
 export type Service = {
@@ -20,7 +21,7 @@ export type Service = {
   related: string[];
 };
 export const services: Service[] = snapshot.services;
-export const { groups, featured, checkedOn } = snapshot;
+export const { groups, featured, checkedOn, revision } = snapshot;
 export const sources: Partial<Record<string, string[]>> = snapshot.sources;
 export const preparation: Partial<Record<string, {
   note: string;

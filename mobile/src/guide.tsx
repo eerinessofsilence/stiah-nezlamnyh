@@ -435,7 +435,7 @@ type ButtonAppearance = {
 
 export function GuideButton({ label, variant = 'secondary', icon, tone = 'foreground', fullWidth = false, row = false, style, ...props }:
   ButtonAppearance & Pick<ComponentProps<typeof Pressable>,
-  'onPress' | 'onLongPress' | 'accessibilityRole' | 'accessibilityLabel' | 'accessibilityHint' | 'accessibilityState' | 'disabled'> & {
+  'ref' | 'onPress' | 'onLongPress' | 'accessibilityRole' | 'accessibilityLabel' | 'accessibilityHint' | 'accessibilityState' | 'disabled'> & {
     style?: ComponentProps<typeof View>['style'];
   }) {
   const colors = useGuideColors();

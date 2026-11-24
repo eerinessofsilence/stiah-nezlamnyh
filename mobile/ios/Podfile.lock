@@ -126,6 +126,8 @@ PODS:
     - Yoga
   - ExpoAsset (58.0.21):
     - ExpoModulesCore
+  - ExpoAudio (58.0.12):
+    - ExpoModulesCore
   - ExpoClipboard (58.0.4):
     - ExpoModulesCore
   - ExpoDomWebView (58.0.2):
@@ -183,6 +185,8 @@ PODS:
   - ExpoRouter (58.0.32):
     - ExpoModulesCore
     - RNScreens
+  - ExpoSpeech (58.0.4):
+    - ExpoModulesCore
   - ExpoSplashScreen (58.0.14):
     - ExpoModulesCore
   - ExpoSQLite (58.0.18):
@@ -2294,21 +2298,23 @@ DEPENDENCIES:
   - expo-dev-launcher (from `../node_modules/expo-dev-launcher`)
   - expo-dev-menu (from `../node_modules/expo-dev-menu`)
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
-  - ExpoAsset (from `../node_modules/expo/node_modules/expo-asset/ios`)
+  - ExpoAsset (from `../node_modules/expo-asset/ios`)
+  - ExpoAudio (from `../node_modules/expo-audio/ios`)
   - ExpoClipboard (from `../node_modules/expo-clipboard/ios`)
   - "ExpoDomWebView (from `../node_modules/@expo/dom-webview/ios`)"
-  - ExpoFileSystem (from `../node_modules/expo/node_modules/expo-file-system/ios`)
-  - ExpoFont (from `../node_modules/expo-font/ios`)
+  - ExpoFileSystem (from `../node_modules/expo-file-system/ios/ExpoFileSystem.podspec`)
+  - ExpoFont (from `../node_modules/expo-font/ios/ExpoFont.podspec`)
   - ExpoGlassEffect (from `../node_modules/expo-glass-effect/ios`)
   - ExpoKeepAwake (from `../node_modules/expo/node_modules/expo-keep-awake/ios`)
   - ExpoLinking (from `../node_modules/expo-linking/ios`)
   - "ExpoLogBox (from `../node_modules/@expo/log-box`)"
-  - ExpoModulesCore (from `../node_modules/expo-modules-core`)
+  - ExpoModulesCore (from `../node_modules/expo-modules-core/ExpoModulesCore.podspec`)
   - ExpoModulesJSI (from `../node_modules/expo-modules-jsi/apple`)
-  - ExpoModulesWorklets (from `../node_modules/expo-modules-core`)
+  - ExpoModulesWorklets (from `../node_modules/expo-modules-core/ExpoModulesWorklets.podspec`)
   - ExpoModulesWorkletsAdapter (from `../node_modules/expo-modules-core`)
   - ExpoNetwork (from `../node_modules/expo-network/ios`)
   - ExpoRouter (from `../node_modules/expo-router/ios`)
+  - ExpoSpeech (from `../node_modules/expo-speech/ios`)
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoSQLite (from `../node_modules/expo-sqlite/ios`)
   - ExpoStatusBar (from `../node_modules/expo-status-bar/ios`)
@@ -2429,15 +2435,17 @@ EXTERNAL SOURCES:
   expo-dev-menu-interface:
     :path: "../node_modules/expo-dev-menu-interface/ios"
   ExpoAsset:
-    :path: "../node_modules/expo/node_modules/expo-asset/ios"
+    :path: "../node_modules/expo-asset/ios"
+  ExpoAudio:
+    :path: "../node_modules/expo-audio/ios"
   ExpoClipboard:
     :path: "../node_modules/expo-clipboard/ios"
   ExpoDomWebView:
     :path: "../node_modules/@expo/dom-webview/ios"
   ExpoFileSystem:
-    :path: "../node_modules/expo/node_modules/expo-file-system/ios"
+    :podspec: "../node_modules/expo-file-system/ios/ExpoFileSystem.podspec"
   ExpoFont:
-    :path: "../node_modules/expo-font/ios"
+    :podspec: "../node_modules/expo-font/ios/ExpoFont.podspec"
   ExpoGlassEffect:
     :path: "../node_modules/expo-glass-effect/ios"
   ExpoKeepAwake:
@@ -2447,17 +2455,19 @@ EXTERNAL SOURCES:
   ExpoLogBox:
     :path: "../node_modules/@expo/log-box"
   ExpoModulesCore:
-    :path: "../node_modules/expo-modules-core"
+    :podspec: "../node_modules/expo-modules-core/ExpoModulesCore.podspec"
   ExpoModulesJSI:
     :path: "../node_modules/expo-modules-jsi/apple"
   ExpoModulesWorklets:
-    :path: "../node_modules/expo-modules-core"
+    :podspec: "../node_modules/expo-modules-core/ExpoModulesWorklets.podspec"
   ExpoModulesWorkletsAdapter:
     :path: "../node_modules/expo-modules-core"
   ExpoNetwork:
     :path: "../node_modules/expo-network/ios"
   ExpoRouter:
     :path: "../node_modules/expo-router/ios"
+  ExpoSpeech:
+    :path: "../node_modules/expo-speech/ios"
   ExpoSplashScreen:
     :path: "../node_modules/expo-splash-screen/ios"
   ExpoSQLite:
@@ -2664,6 +2674,7 @@ SPEC CHECKSUMS:
   expo-dev-menu: 00a1108ee5f998295013524ae8d132801433075e
   expo-dev-menu-interface: a0ae020737b9f6de39689628181ffd572881cca9
   ExpoAsset: eda9e4844b55b78d4e71a0e2de767a038f3a0806
+  ExpoAudio: 04b22b00783fe443c15121138f827b808fdf8c71
   ExpoClipboard: 244adf0a38b60ec7105e217042dd266a722f5a5e
   ExpoDomWebView: b2a6d681b9d34c23b1f584321386ca8da1d36afb
   ExpoFileSystem: 3f4f423755d1ed5ef084caeb3a62c4a3fca0bf12
@@ -2678,6 +2689,7 @@ SPEC CHECKSUMS:
   ExpoModulesWorkletsAdapter: 33dd492e9c87db147c46e157c36d0761a48577c8
   ExpoNetwork: d6af33a2d31d3d48652b28ac3d67ac85b1cb04f4
   ExpoRouter: 01c92a99308a0ebb09fe41fddb2ecb180e78b52b
+  ExpoSpeech: 4710dc3bb82beac8886f926d15f8e6892ff69b33
   ExpoSplashScreen: 5df81b55f086d8acc7a24008537514f5379aa6f9
   ExpoSQLite: 8f41cff76b3499df037e77bf88b9ad97e4794282
   ExpoStatusBar: 38eff05a54229c9a388cb56cef29117b8dc77eb1

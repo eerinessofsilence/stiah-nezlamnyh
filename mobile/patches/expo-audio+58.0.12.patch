@@ -1,0 +1,93 @@
+diff --git a/node_modules/expo-audio/ios/AudioStream.swift b/node_modules/expo-audio/ios/AudioStream.swift
+--- a/node_modules/expo-audio/ios/AudioStream.swift
++++ b/node_modules/expo-audio/ios/AudioStream.swift
+@@ -39,12 +39,13 @@
+         try? session.setActive(false)
+       }
+     }
+-    try session.setCategory(.record, mode: .measurement)
++    try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
+     try session.setPreferredSampleRate(requestedSampleRate)
+     try session.setActive(true)
+ 
+     let engine = AVAudioEngine()
+     let inputNode = engine.inputNode
++    try inputNode.setVoiceProcessingEnabled(true)
+     let hardwareFormat = inputNode.outputFormat(forBus: 0)
+ 
+     let targetSampleRate = requestedSampleRate
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioStream.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioStream.kt
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioStream.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioStream.kt
+@@ -1,9 +1,12 @@
+ package expo.modules.audio
+ 
+ import android.Manifest
++import android.content.Context
+ import android.media.AudioFormat
++import android.media.AudioManager
+ import android.media.AudioRecord
+ import android.media.MediaRecorder
++import android.media.audiofx.AcousticEchoCanceler
+ import androidx.annotation.RequiresPermission
+ import expo.modules.kotlin.AppContext
+ import expo.modules.kotlin.jni.NativeArrayBuffer
+@@ -45,6 +48,9 @@
+   val id: String = java.util.UUID.randomUUID().toString()
+ 
+   private var audioRecord: AudioRecord? = null
++  private val audioManager = appContext.reactContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
++  private var previousMode: Int? = null
++  private var echoCanceler: AcousticEchoCanceler? = null
+   private var captureJob: Job? = null
+   private val coroutineScope = CoroutineScope(Dispatchers.IO)
+ 
+@@ -70,8 +76,13 @@
+     val recorder = createAudioRecord(config)
+ 
+     try {
++      previousMode = audioManager?.mode
++      audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
++      echoCanceler = AcousticEchoCanceler.create(recorder.audioSessionId)
++      echoCanceler?.setEnabled(true)
+       recorder.startRecording()
+-    } catch (e: IllegalStateException) {
++    } catch (e: RuntimeException) {
++      restoreAudioMode()
+       recorder.release()
+       throw AudioStreamInitializationException(
+         "Failed to start the audio stream. The microphone is likely held by another app or by the system"
+@@ -95,8 +106,12 @@
+     isStreaming = false
+     captureJob?.cancel()
+     captureJob = null
+-    audioRecord?.stop()
+-    audioRecord?.release()
++    try {
++      audioRecord?.stop()
++    } finally {
++      restoreAudioMode()
++      audioRecord?.release()
++    }
+     audioRecord = null
+     emitStatus()
+ 
+@@ -207,10 +222,17 @@
+     )
+   }
+ 
++  private fun restoreAudioMode() {
++    echoCanceler?.release()
++    echoCanceler = null
++    previousMode?.let { audioManager?.mode = it }
++    previousMode = null
++  }
++
+   @RequiresPermission(Manifest.permission.RECORD_AUDIO)
+   private fun createAudioRecord(config: ResolvedAudioConfig): AudioRecord {
+     val recorder = AudioRecord(
+-      MediaRecorder.AudioSource.MIC,
++      MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+       config.sampleRate,
+       config.channelConfig,
+       config.audioEncoding,

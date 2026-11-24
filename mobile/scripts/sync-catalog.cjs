@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const {createHash} = require('node:crypto');
 const { mkdirSync, readFileSync, writeFileSync } = require('node:fs');
 const { dirname, join } = require('node:path');
 const catalog = require('../../catalog.js');
@@ -27,6 +28,7 @@ for (const service of catalog.services) {
   for (const section of service.sections) {
     assert.match(section.id, /^[a-z-]+$/);
     assert(section.keys, `Missing search terms: ${service.id}/${section.id}`);
+    assert(section.source?.every(key => Object.hasOwn(catalog.sources, key)) ?? true, `Unknown section sources: ${service.id}/${section.id}`);
     checkAction(section.action, `${service.id}/${section.id}`);
   }
   if (catalog.preparation[service.id]?.section) {
@@ -57,7 +59,8 @@ for (const source of Object.values(catalog.sources)) {
 }
 
 const file = join(__dirname, '../src/data/catalog.json');
-const snapshot = `${JSON.stringify(catalog, null, 2)}\n`;
+const revision = createHash('sha256').update(JSON.stringify(catalog)).digest('hex');
+const snapshot = `${JSON.stringify({...catalog, revision}, null, 2)}\n`;
 if (process.argv.includes('--check')) {
   assert(readFileSync(file, 'utf8') === snapshot, 'Run npm run sync:catalog to update the mobile catalog');
 } else {

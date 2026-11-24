@@ -3,3 +3,5 @@
 .env.*
 /.playwright-mcp/
 /.wrangler/
+
+/node_modules/

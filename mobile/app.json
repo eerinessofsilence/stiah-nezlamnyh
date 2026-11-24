@@ -40,6 +40,16 @@
       "expo-router",
       "expo-sqlite",
       [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "./scripts/with-dev-microphone.cjs",
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#f0f0e6",
