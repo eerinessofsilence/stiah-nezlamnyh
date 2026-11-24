@@ -28,6 +28,7 @@ function GuideNavigation() {
   const { darkMode } = useGuideAppearance();
   const reduced = useReducedMotion();
   const theme = darkMode ? DarkTheme : DefaultTheme;
+  const pageOptions: NativeStackNavigationOptions = { headerShown: false, animation: reduced ? 'none' : 'default' };
   const sheetOptions: NativeStackNavigationOptions = {
     headerShown: false,
     presentation: 'formSheet',
@@ -47,12 +48,13 @@ function GuideNavigation() {
       <GuideProvider>
         <Stack screenOptions={{ statusBarStyle: darkMode ? 'light' : 'dark' }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false, scrollEdgeEffects: { top: 'hidden', bottom: 'soft' } }} />
-          <Stack.Screen name="contacts" options={{ headerShown: false }} />
+          <Stack.Screen name="contacts" options={pageOptions} />
+          <Stack.Screen name="about" options={pageOptions} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={sheetOptions} />
           <Stack.Screen name="services-modal" options={sheetOptions} />
-          <Stack.Screen name="service/[id]" options={{ headerShown: false, animation: reduced ? 'none' : 'default' }} />
+          <Stack.Screen name="service/[id]" options={pageOptions} />
         </Stack>
       </GuideProvider>
     </ThemeProvider>

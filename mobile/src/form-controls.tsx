@@ -255,7 +255,7 @@ export function GuideSwitch({ value, onValueChange, accessibilityLabel, disabled
   return <Switch accessibilityLabel={accessibilityLabel} accessibilityLanguage="uk" value={value} onValueChange={onValueChange} disabled={disabled}
     trackColor={{ false: colors.switchTrackOff, true: colors.accent }} thumbColor={colors.surface}
     ios_backgroundColor={colors.switchTrackOff} hitSlop={ios ? 8 : undefined}
-    style={[ios ? undefined : { minHeight: 44 }, style]} />;
+    style={[styles.switch, !ios && styles.androidSwitch, style]} />;
 }
 
 export function GuideRadioMark({ selected }: { selected: boolean }) {
@@ -271,6 +271,8 @@ function dayStart(date: Date) { return new Date(date.getFullYear(), date.getMont
 function dayEnd(date: Date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1).getTime() - 1; }
 
 const styles = StyleSheet.create({
+  switch: { alignSelf: 'center' },
+  androidSwitch: { minHeight: 44 },
   disabled: { opacity: 0.5 },
   frame: { minHeight: 52, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12 },
   input: { flex: 1, alignSelf: 'stretch', minWidth: 0, fontFamily, fontSize, padding: 0, includeFontPadding: false, textAlignVertical: 'center' },

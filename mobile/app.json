@@ -2,7 +2,7 @@
   "expo": {
     "name": "Гід: Стяг незламних",
     "slug": "stiah-nezlamnykh",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "scheme": "stiahnezlamnykh",
     "platforms": [
       "ios",
@@ -12,7 +12,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "app.stiahnezlamnykh.guide",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "icon": "./assets/Stiah.icon",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "uk",
@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "app.stiahnezlamnykh.guide",
-      "versionCode": 3,
+      "versionCode": 4,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE"

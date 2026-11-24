@@ -6,9 +6,9 @@ export const motion = {
   appear: 160,
   collapse: 220,
   expand: 300,
-  logoFadeIn: 1500,
+  logoFadeIn: 750,
   logoHold: 2000,
-  logoFadeOut: 500,
+  logoFadeOut: 250,
   easeOut: Easing.bezier(0, 0, 0.58, 1),
   easeInOut: Easing.bezier(0.42, 0, 0.58, 1),
 };

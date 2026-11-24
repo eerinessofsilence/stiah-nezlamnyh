@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { checkedOn, type GuideSection, preparation, services } from '../../data/catalog';
-import { GuideButton, GuideIcon, GuidePanel, GuidePressable, GuideScreen, GuideText, icons, ServiceList } from '../../guide';
+import { GuideBackButton, GuideButton, GuidePanel, GuideScreen, GuideText, ServiceList } from '../../guide';
 import { GuideDisclosure } from '../../guide-disclosure';
 import { RouteAction, RouteChecklist, RouteSources } from '../../route-actions';
 import { useGuideColors } from '../../theme';
@@ -15,15 +15,8 @@ export default function ServiceScreen() {
   }>();
   const service = services.find(item => item.id === id);
   const close = (
-    <GuidePressable accessibilityRole="button" accessibilityLabel="Повернутися до послуг"
-      onPress={() => returnTo === '/services-modal' ? router.replace('/services-modal') : router.canGoBack() ? router.back() : router.replace('/services')}
-      style={[styles.close, {
-        backgroundColor: colors.surface,
-        borderColor: colors.iconButtonBorder,
-        borderWidth: 1,
-      }]}>
-      <GuideIcon name={icons.back} size={20} />
-    </GuidePressable>
+    <GuideBackButton label="Повернутися до послуг"
+      onPress={() => returnTo === '/services-modal' ? router.replace('/services-modal') : router.canGoBack() ? router.back() : router.replace('/services')} />
   );
 
   if (!service) {
@@ -102,7 +95,6 @@ function SectionContent({ section, checklistFor }: { section: GuideSection; chec
 }
 
 const styles = StyleSheet.create({
-  close: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   step: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   number: { minWidth: 28, minHeight: 28, padding: 4, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   stepCopy: { flex: 1 },

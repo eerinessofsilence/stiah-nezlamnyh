@@ -5,5 +5,3 @@ export const guideTabs = [
   { name: 'news', label: 'Новини', icon: 'newspaper', selectedIcon: 'newspaper-fill' },
   { name: 'menu', label: 'Меню', icon: 'list-bullets', selectedIcon: 'list-bullets-fill' },
 ] as const;
-
-export const contactsHref = { pathname: '/menu', params: { section: 'contacts' } } as const;

@@ -25,7 +25,7 @@ export const guideContentMaxWidth = 448;
 // Match the horizontal inset of the floating tab bar on iPhone.
 export const guideContentInset = Platform.OS === 'ios' && !Platform.isPad && hasNativeHomeTabs ? 20 : 12;
 
-export function GuideScreen({ title, titleAction, titleType = 'title', children, sheet = false, scrollRef, adjustForKeyboard = false, footerHeight = 0, onScroll, onLayout, onScrollBeginDrag, onMomentumScrollEnd }: {
+export function GuideScreen({ title, titleAction, titleType = 'title', children, sheet = false, scrollRef, adjustForKeyboard = false, showOfflineNotice = false, footerHeight = 0, onScroll, onLayout, onScrollBeginDrag, onMomentumScrollEnd }: {
   title?: string;
   titleAction?: ReactNode;
   titleType?: 'title' | 'sheetTitle';
@@ -33,6 +33,7 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
   sheet?: boolean;
   scrollRef?: Ref<ScrollViewInstance>;
   adjustForKeyboard?: boolean;
+  showOfflineNotice?: boolean;
   footerHeight?: number;
 } & Pick<ComponentProps<typeof ScrollView>, 'onScroll' | 'onLayout' | 'onScrollBeginDrag' | 'onMomentumScrollEnd'>) {
   const colors = useGuideColors();
@@ -132,7 +133,7 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
           <GuideText type={titleType} style={!stackTitle && styles.titleText}>{title}</GuideText>
         </View>
       )}
-      {offline && !sheet && activeTab >= 0 && <GuidePanel tone="surfaceSoft"><GuideText type="support" announcement>Ви офлайн. Довідник доступний, а для зовнішніх сайтів потрібен інтернет.</GuideText></GuidePanel>}
+      {offline && !sheet && (activeTab >= 0 || showOfflineNotice) && <GuidePanel tone="surfaceSoft"><GuideText type="support" announcement>Ви офлайн. Довідник доступний, а для зовнішніх сайтів потрібен інтернет.</GuideText></GuidePanel>}
       {children}
     </ScrollView>
   );
@@ -284,6 +285,16 @@ export function GuidePressable({ style, onFocus, onBlur, onPressIn, onPressOut, 
           { backgroundColor: animate ? animatedColor : pressed ? tint : baseColor },
         focused && !disabled && { outlineWidth: 2, outlineOffset: -2, outlineColor: focusColor ?? colors.foreground },
       ]} />
+  );
+}
+
+export function GuideBackButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const colors = useGuideColors();
+  return (
+    <GuidePressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
+      style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.iconButtonBorder }]}>
+      <GuideIcon name={icons.back} size={20} />
+    </GuidePressable>
   );
 }
 
@@ -554,6 +565,7 @@ export function ExternalLink({ url, variant, compact = false, copyLabel, inlineC
 }
 
 const styles = StyleSheet.create({
+  backButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   screen: { gap: 12, paddingHorizontal: guideContentInset, paddingTop: 12, paddingBottom: 16, width: '100%', maxWidth: guideContentMaxWidth, alignSelf: 'center' },
   edgeScroll: { flex: 1 },
   statusEdge: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 },
