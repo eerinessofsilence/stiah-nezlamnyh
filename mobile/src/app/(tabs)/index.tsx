@@ -2,7 +2,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef } from 'react';
 import type { HostInstance } from 'react-native';
 
-import { GuideButton, GuideScreen, icons } from '../../guide';
+import { GuideButton, GuideScreen, GuideText, icons } from '../../guide';
+import { GuideLogo } from '../../guide-logo';
 import type { GuideProfile } from '../../guide-profile';
 import { useGuideState } from '../../guide-state';
 import { focusGuideControl } from '../../guide-motion';
@@ -30,10 +31,14 @@ export default function HomeScreen() {
   }
 
   return (
-    <GuideScreen title="Оберіть статус">
+    <GuideScreen>
+      <GuideLogo style={{ alignSelf: 'flex-start' }} />
+      <GuideText type="title">Оберіть статус</GuideText>
       <StatusChoices selectedId={profile?.statusId ?? null} onChoose={openStatus} variant="links" />
       <GuideButton label="Не знаю, з чого почати" row icon={icons.arrow}
         onPress={() => router.push({ pathname: '/service/[id]', params: { id: 'escort' } })} />
+      <GuideButton label="Запитати Характерника" accessibilityRole="link" variant="primary" row icon="assistant"
+        onPress={() => router.navigate('/assistant')} />
     </GuideScreen>
   );
 }

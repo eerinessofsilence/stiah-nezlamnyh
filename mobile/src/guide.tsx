@@ -14,11 +14,11 @@ import { guideIconSources, type GuideIconName } from './guide-icons';
 import { GuideContentReady } from './guide-launch';
 import { focusGuideControl, motion, useGuideTransition, useReducedMotion } from './guide-motion';
 import { useGuideState } from './guide-state';
+import { guideTabs } from './guide-tabs';
 import { StatusEdge } from './status-edge';
 import { useGuideColors } from './theme';
 import { typography } from './typography';
 
-const tabRoutes = ['index', 'services', 'assistant', 'contacts', 'menu'];
 const tabSwipeDirectionRatio = 1.4;
 export const hasNativeHomeTabs = Platform.OS === 'ios' && Number.parseInt(Platform.Version, 10) >= 26;
 export const guideContentMaxWidth = 448;
@@ -57,7 +57,7 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
     });
   }, [navigation, sheet]);
   const segments = useSegments();
-  const routeTab = tabRoutes.findIndex((route) => segments.at(-1) === route);
+  const routeTab = guideTabs.findIndex(({ name }) => segments.at(-1) === name);
   const activeTab = routeTab >= 0 ? routeTab : segments.includes('(tabs)') ? 0 : -1;
   const tabSwipe = useMemo(() => {
     let verticalDrag = false;
@@ -75,8 +75,8 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
       onPanResponderRelease: (_, { dx, dy }) => {
         const nextTab = activeTab + (dx < 0 ? 1 : -1);
         if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * tabSwipeDirectionRatio &&
-          nextTab >= 0 && nextTab < tabRoutes.length) {
-          router.navigate(`/(tabs)/${tabRoutes[nextTab]}` as never);
+          nextTab >= 0 && nextTab < guideTabs.length) {
+          router.navigate(`/(tabs)/${guideTabs[nextTab].name}` as never);
         }
       },
     });

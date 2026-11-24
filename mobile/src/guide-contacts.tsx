@@ -1,16 +1,16 @@
 import { useState } from 'react';
 
-import { sources } from '../../data/catalog';
-import { contacts, hotline, localContacts } from '../../data/contacts';
-import { ExternalLink, GuidePanel, GuideScreen, GuideText, icons } from '../../guide';
-import { findContacts } from '../../search';
-import { SearchField } from '../../search-field';
+import { sources } from './data/catalog';
+import { contacts, hotline, localContacts } from './data/contacts';
+import { ExternalLink, GuidePanel, GuideText, icons } from './guide';
+import { findContacts } from './search';
+import { SearchField } from './search-field';
 
-export default function ContactsScreen() {
+export function GuideContacts() {
   const [query, setQuery] = useState('');
   const matches = query.trim() ? findContacts(localContacts, query) : localContacts.slice(0, 2);
   return (
-    <GuideScreen title="Контакти" adjustForKeyboard>
+    <>
       <ContactCard contact={hotline} featured />
       <GuideText heading>Допомога у вашій громаді</GuideText>
       <SearchField value={query} onChange={setQuery} label="Місто або громада" />
@@ -21,7 +21,7 @@ export default function ContactsScreen() {
       {contacts.filter(contact => contact !== hotline && contact.source !== 'hub').map(contact => (
         <ContactCard key={contact.title} contact={contact} />
       ))}
-    </GuideScreen>
+    </>
   );
 }
 

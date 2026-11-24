@@ -6,6 +6,7 @@ import { ExternalLink, GuideButton, GuidePanel, GuideText, icons } from './guide
 import { GuideDisclosure } from './guide-disclosure';
 import { GuideCheckbox } from './form-controls';
 import { useGuideState } from './guide-state';
+import { contactsHref } from './guide-tabs';
 
 export function RouteAction({ action, primary = false }: { action?: string[]; primary?: boolean }) {
   const router = useRouter();
@@ -14,7 +15,7 @@ export function RouteAction({ action, primary = false }: { action?: string[]; pr
   const variant = primary ? 'primary' : 'secondary';
   if (destination === 'contacts') {
     return <GuideButton label={label} accessibilityRole="link" variant={variant} fullWidth icon={icons.arrow}
-      onPress={() => { if (router.canDismiss()) router.dismissAll(); router.navigate('/contacts'); }} />;
+      onPress={() => { if (router.canDismiss()) router.dismissAll(); router.navigate(contactsHref); }} />;
   }
   return <ExternalLink url={sources[destination]?.[1] ?? destination} label={label} variant={primary ? 'primary' : undefined} fullWidth
     icon={destination.startsWith('tel:') ? icons.phone : icons.external} />;

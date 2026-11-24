@@ -6,16 +6,9 @@ import { Animated, StyleSheet, View } from 'react-native';
 import { GuideStateIcon, GuidePressable, hasNativeHomeTabs } from '../../guide';
 import { guideIconSources } from '../../guide-icons';
 import { useGuideTransition } from '../../guide-motion';
+import { guideTabs } from '../../guide-tabs';
 import { useGuideColors } from '../../theme';
 import { typography } from '../../typography';
-
-const tabs = [
-  { name: 'index', label: 'Головна', icon: 'house', selectedIcon: 'house-fill' },
-  { name: 'services', label: 'Послуги', icon: 'squares-four', selectedIcon: 'squares-four-fill' },
-  { name: 'assistant', label: 'Помічник', icon: 'assistant', selectedIcon: 'assistant-fill' },
-  { name: 'contacts', label: 'Контакти', icon: 'users', selectedIcon: 'users-fill' },
-  { name: 'menu', label: 'Про гід', icon: 'info', selectedIcon: 'info-fill' },
-] as const;
 
 export default function TabsLayout() {
   const colors = useGuideColors();
@@ -23,7 +16,7 @@ export default function TabsLayout() {
   if (!hasNativeHomeTabs) {
     return (
       <Tabs backBehavior="initialRoute" screenOptions={{ headerShown: false }} tabBar={renderHomeTabs}>
-        {tabs.map(({ name }) => <Tabs.Screen key={name} name={name} />)}
+        {guideTabs.map(({ name }) => <Tabs.Screen key={name} name={name} />)}
       </Tabs>
     );
   }
@@ -33,7 +26,7 @@ export default function TabsLayout() {
       labelStyle={{ default: { fontWeight: '600' }, selected: { fontWeight: '700' } }}
       iconColor={{ default: colors.foregroundMuted, selected: colors.accent }}
       minimizeBehavior="never">
-      {tabs.map(({ name, label, icon, selectedIcon }) => (
+      {guideTabs.map(({ name, label, icon, selectedIcon }) => (
         <NativeTabs.Trigger key={name} name={name} labelVisibilityMode="labeled">
           <NativeTabs.Trigger.Label>{label.replace(' ', '\u00a0')}</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon src={{ default: guideIconSources[icon], selected: guideIconSources[selectedIcon] }}
@@ -60,7 +53,7 @@ function HomeTabs({ state, emitter, navigateToTab, insets }: BottomTabBarProps) 
       paddingBottom: insets.bottom,
     }]}>
       {state.routes.map((route, index) => {
-        const tab = tabs.find(({ name }) => name === route.name);
+        const tab = guideTabs.find(({ name }) => name === route.name);
         if (!tab) return null;
         const selected = index === state.index;
 
@@ -81,7 +74,7 @@ function HomeTabs({ state, emitter, navigateToTab, insets }: BottomTabBarProps) 
   );
 }
 
-function HomeTabLabel({ tab, selected }: { tab: typeof tabs[number]; selected: boolean }) {
+function HomeTabLabel({ tab, selected }: { tab: typeof guideTabs[number]; selected: boolean }) {
   const colors = useGuideColors();
   const progress = useGuideTransition(selected ? 1 : 0);
   const color = progress.interpolate({ inputRange: [0, 1], outputRange: [colors.foregroundMuted, colors.accent] });
