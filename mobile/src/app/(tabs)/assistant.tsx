@@ -10,7 +10,7 @@ import { hotline, localContacts } from '../../data/contacts';
 import { ExternalLink, GuideButton, guideContentInset, guideContentMaxWidth, GuideIcon, GuideIconButton, GuidePanel, GuidePressable, GuideScreen, GuideText, hasNativeHomeTabs, icons, RouteLink } from '../../guide';
 import { useGuideState } from '../../guide-state';
 import { RouteAction, RouteSources } from '../../route-actions';
-import { type AnswerChoice, answerSections, findContacts, localAnswers, parseAiAnswers } from '../../search';
+import { type AnswerChoice, type CatalogReply, answerSections, findContacts, localCatalogReply, parseCatalogReply } from '../../search';
 import { GuideInputFrame, GuideTextInput } from '../../form-controls';
 import { useGuideColors } from '../../theme';
 import { useAssistantAudio } from '../../assistant-audio';
@@ -18,7 +18,7 @@ import { AssistantRecordingBar } from '../../assistant-recording-bar';
 import { useSetAssistantVoiceSession } from '../../assistant-voice-session';
 import { useAssistantChats } from '../../assistant-chat-state';
 import type { Turn } from '../../assistant-chats';
-import { replyPresentation } from '../../assistant-reply';
+import { assistantShortReply, catalogOverview, replyPresentation } from '../../assistant-reply';
 import { focusGuideControl, motion, useReducedMotion } from '../../guide-motion';
 
 const prompts = [
@@ -34,18 +34,30 @@ const onlineEndpoint = endpoint && /^(?:https:\/\/[^/@?#]+|http:\/\/(?:localhost
 const remote = onlineEndpoint?.startsWith('https://');
 const noAnswer = 'У гіді немає підтвердженої відповіді на це запитання. Уточніть, про яку послугу йдеться, або зверніться на обласну ветеранську лінію.';
 const chooseTopic = 'Що саме вас цікавить?';
-const clarifyTopic = 'Уточніть, яка саме процедура або умова вас цікавить.';
+const partialAnswer = 'На інші частини запитання в гіді немає підтвердженої відповіді.';
 
-function describeAnswer(question: string, answers: AnswerChoice[]) {
-  if (answers.length > 1) return { text: chooseTopic };
-  const choice = answers[0];
+function describeAnswer(question: string, choice: AnswerChoice) {
   const service = services.find(item => item.id === choice?.route);
-  if (!service) return { text: noAnswer };
+  if (!service) return null;
   const section = service.sections.find(item => item.id === choice.section);
   const local = service.id === 'escort' && findContacts(localContacts, question)[0] || undefined;
+  const overview = !section && !local ? catalogOverview(service) : undefined;
   const paragraphs = local ? [local.description, local.details].filter((part): part is string => Boolean(part)) :
-    section?.paragraphs ?? [service.steps[0], clarifyTopic];
-  return { service, section, local, paragraphs, text: paragraphs.join(' ') };
+    section?.paragraphs ?? [];
+  const title = local?.title ?? section?.title ?? service.title;
+  const text = overview ? [overview.intro, ...overview.topics.map(topic => `${topic.title}. ${topic.paragraphs[0]}`)].join(' ') :
+    paragraphs.join(' ');
+  return { service, section, local, overview, paragraphs, title, text };
+}
+
+function spokenReply(question: string, { answers, mode }: CatalogReply) {
+  const shortReply = assistantShortReply(question);
+  if (shortReply) return shortReply;
+  if (!answers.length) return noAnswer;
+  const material = answers.map(choice => describeAnswer(question, choice)).filter(item => item !== null);
+  if (mode === 'clarify') return `${chooseTopic} ${material.map(item => item.title).join('. ')}.`;
+  const text = material.map(item => material.length > 1 ? `${item.title}. ${item.text}` : item.text);
+  return [...text, mode === 'partial' ? partialAnswer : ''].filter(Boolean).join(' ');
 }
 
 export default function AssistantScreen() {
@@ -87,6 +99,7 @@ export default function AssistantScreen() {
   });
 
   useEffect(() => {
+    if (!focused) return;
     setVoiceReady(undefined);
     if (!online || !onlineEndpoint) return;
     const controller = new AbortController();
@@ -102,7 +115,7 @@ export default function AssistantScreen() {
       .catch(() => { if (!controller.signal.aborted || controller.signal.reason === 'timeout') setVoiceReady(false); })
       .finally(() => clearTimeout(timeout));
     return () => { clearTimeout(timeout); controller.abort(); };
-  }, [online, devToken]);
+  }, [focused, online, devToken]);
 
   useEffect(() => {
     screenFocused.current = focused;
@@ -158,10 +171,17 @@ export default function AssistantScreen() {
       ...(!fromLive && { question: '', voiceDraft: false }),
     }));
     if (!fromLive) Keyboard.dismiss();
-    const context = previous?.answers?.length === 1 ? previous.answers[0] : null;
-    let answers: AnswerChoice[];
+    const shortReply = assistantShortReply(trimmed);
+    const previousQuestion = chat.turns.findLast(turn => !assistantShortReply(turn.question));
+    const previousAnswers = previousQuestion?.answers ?? [];
+    const previousRoute = previousAnswers[0]?.route;
+    const context = previousAnswers.length === 1 ? previousAnswers[0] :
+      previousRoute && previousAnswers.every(item => item.route === previousRoute) ? { route: previousRoute, section: null } : null;
+    let reply: CatalogReply;
     let fallback: string | undefined;
-    if (online && onlineEndpoint) {
+    if (shortReply) {
+      reply = { answers: [], mode: 'answer' };
+    } else if (online && onlineEndpoint) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 11000);
       try {
@@ -179,21 +199,21 @@ export default function AssistantScreen() {
           if (response.status === 403) fallback = 'Перевірте код доступу. Показую результат пошуку на пристрої.';
           throw new Error();
         }
-        answers = parseAiAnswers(services, (await response.json()).answers);
+        reply = parseCatalogReply(services, await response.json());
       } catch {
         fallback ??= 'Онлайн-помічник недоступний. Показую результат пошуку на пристрої.';
-        answers = localAnswers(services, trimmed, context);
+        reply = localCatalogReply(services, trimmed, context);
       } finally {
         clearTimeout(timeout);
       }
     } else {
-      answers = localAnswers(services, trimmed, context);
+      reply = localCatalogReply(services, trimmed, context);
     }
     updateChat(activeId, current => ({
-      ...current, turns: current.turns.map(turn => turn.id === id ? { ...turn, answers, fallback } : turn),
+      ...current, turns: current.turns.map(turn => turn.id === id ? { ...turn, ...reply, fallback } : turn),
     }));
-    if (!fromLive && screenFocused.current && getActiveId() === activeId) AccessibilityInfo.announceForAccessibility(answers.length > 1 ? 'Уточніть запит' : answers.length ? 'Відповідь готова' : 'Відповіді не знайдено');
-    return fallback ?? describeAnswer(trimmed, answers).text;
+    if (!fromLive && screenFocused.current && getActiveId() === activeId) AccessibilityInfo.announceForAccessibility(shortReply ?? (reply.mode === 'clarify' ? 'Уточніть запит' : reply.answers.length ? 'Відповідь готова' : 'Відповіді не знайдено'));
+    return [fallback, spokenReply(trimmed, reply)].filter(Boolean).join(' ');
   }
 
   function clarify(id: number, choice: AnswerChoice) {
@@ -202,7 +222,7 @@ export default function AssistantScreen() {
     const service = services.find(item => item.id === choice.route);
     const matches = !choice.section && service ? answerSections(service, turn.question) : [];
     const answers = matches.length ? matches.map(({ id }) => ({ route: choice.route, section: id })) : [choice];
-    updateChat(activeId, current => ({ ...current, turns: current.turns.map(item => item.id === id ? { ...item, answers } : item) }));
+    updateChat(activeId, current => ({ ...current, turns: current.turns.map(item => item.id === id ? { ...item, answers, mode: answers.length > 1 ? 'clarify' : 'answer' } : item) }));
     AccessibilityInfo.announceForAccessibility('Запит уточнено');
   }
 
@@ -379,17 +399,11 @@ function ReplyAppearance({ pending, onReveal, children }: { pending: boolean; on
 function AssistantAnswer({ turn, answers, onChoose, onSpeak }: {
   turn: Turn; answers: AnswerChoice[]; onChoose: (choice: AnswerChoice) => void; onSpeak?: (text: string) => void;
 }) {
-  const { service, section, local, paragraphs, text } = describeAnswer(turn.question, answers);
-  const checklist = service && preparation[service.id];
-  const actionKey = section?.action?.[0];
-  const sourceKeys = local ? [local.source] : section?.source ?? (service && [...new Set([
-    ...(actionKey && sources[actionKey] ? [actionKey] : []),
-    ...(checklist?.section === section?.id && checklist?.source ? [checklist.source] : []),
-    ...service.source,
-  ])]) ?? [];
+  const shortReply = assistantShortReply(turn.question);
+  const mode = turn.mode ?? (answers.length > 1 ? 'clarify' : 'answer');
   return <GuidePanel>
     {turn.fallback && <GuideText type="meta" tone="foregroundMuted">{turn.fallback} Знімок гіда від {checkedOn}.</GuideText>}
-    {answers.length > 1 ? <>
+    {shortReply ? <GuideText>{shortReply}</GuideText> : mode === 'clarify' ? <>
       <GuideText type="section" style={styles.answerSection}>{chooseTopic}</GuideText>
       {answers.map(choice => {
         const topic = services.find(item => item.id === choice.route);
@@ -397,23 +411,46 @@ function AssistantAnswer({ turn, answers, onChoose, onSpeak }: {
         return topic && <GuideButton key={choice.route + choice.section} label={part?.title ?? topic.title}
           row icon={icons.arrow} onPress={() => onChoose(choice)} />;
       })}
-    </> : !service ? <>
+    </> : !answers.length ? <>
       <GuideText type="support">{noAnswer}</GuideText>
       <ExternalLink url={hotline.dial} label={hotline.phone} variant="primary" icon={icons.phone} />
     </> : <>
-      <GuideText type={local ? 'section' : 'sheetTitle'} style={local ? styles.answerSection : styles.answerTitle}>
-        {local ? local.title : section?.title ?? service.title}
-      </GuideText>
-      {paragraphs?.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)}
-      {local && <ExternalLink url={local.dial} label={local.phone} icon={icons.phone} fullWidth />}
-      {!section && !local && service.sections.map(item => <GuideButton key={item.id} label={item.title}
-        row icon={icons.arrow} onPress={() => onChoose({ route: service.id, section: item.id })} />)}
-      <RouteAction action={section?.action ?? service.action} />
-      <RouteLink id={service.id} section={section?.id} />
-      {onSpeak && <GuideButton label="Прослухати" row onPress={() => onSpeak(text)} />}
-      <RouteSources key={service.id + (section?.id ?? '')} sourceKeys={sourceKeys} />
+      {answers.map(choice => <CatalogAnswer key={choice.route + ':' + choice.section} question={turn.question} choice={choice} onChoose={onChoose} />)}
+      {mode === 'partial' && <GuideText type="support" tone="foregroundMuted">{partialAnswer}</GuideText>}
+      {onSpeak && <GuideButton label="Прослухати" row onPress={() => onSpeak(spokenReply(turn.question, { answers, mode }))} />}
     </>}
   </GuidePanel>;
+}
+
+function CatalogAnswer({ question, choice, onChoose }: { question: string; choice: AnswerChoice; onChoose: (choice: AnswerChoice) => void }) {
+  const material = describeAnswer(question, choice);
+  if (!material) return null;
+  const { service, section, local, overview, paragraphs, title } = material;
+  const checklist = preparation[service.id];
+  const actionKey = section?.action?.[0];
+  const sourceKeys = local ? [local.source] : section?.source ?? [...new Set([
+    ...(actionKey && sources[actionKey] ? [actionKey] : []),
+    ...(checklist?.section === section?.id && checklist?.source ? [checklist.source] : []),
+    ...service.source,
+    ...(overview?.topics.flatMap(topic => topic.source ?? []) ?? []),
+  ])];
+  return <>
+    <GuideText type={local ? 'section' : 'sheetTitle'} style={local ? styles.answerSection : styles.answerTitle}>{title}</GuideText>
+    {overview && <>
+      <GuideText>{overview.intro}</GuideText>
+      {overview.topics.map(topic => <Fragment key={topic.id}>
+        <GuideText type="item" heading>{topic.title}</GuideText>
+        <GuideText>{topic.paragraphs[0]}</GuideText>
+      </Fragment>)}
+    </>}
+    {paragraphs.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)}
+    {local && <ExternalLink url={local.dial} label={local.phone} icon={icons.phone} fullWidth />}
+    {overview && service.sections.map(item => <GuideButton key={item.id} label={item.title}
+      row icon={icons.arrow} onPress={() => onChoose({ route: service.id, section: item.id })} />)}
+    <RouteAction action={section?.action ?? (section?.definition ? undefined : service.action)} />
+    <RouteLink id={service.id} section={section?.id} />
+    <RouteSources key={service.id + (section?.id ?? '')} sourceKeys={sourceKeys} />
+  </>;
 }
 
 const styles = StyleSheet.create({

@@ -1,6 +1,6 @@
-import type { AnswerChoice } from './search';
+import type { CatalogReply } from './search';
 
-export type Turn = { id: number; question: string; answers?: AnswerChoice[]; fallback?: string };
+export type Turn = { id: number; question: string; fallback?: string } & Partial<CatalogReply>;
 
 export type AssistantChat = {
   id: number;

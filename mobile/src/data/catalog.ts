@@ -7,6 +7,7 @@ export type GuideSection = {
   paragraphs: string[];
   source?: string[];
   action?: string[];
+  definition?: { nextSection: string | null };
 };
 export type Service = {
   id: string;

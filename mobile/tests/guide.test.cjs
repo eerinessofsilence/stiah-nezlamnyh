@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const { services, preparation, sources, contacts, localContacts, featured } = require('../src/data/catalog.json');
 const { readProfile, statuses } = require('../src/guide-profile.ts');
-const { answerSections, findContacts, findSections, findServices, localAnswers, matchTopics, parseAiAnswers } = require('../src/search.js');
+const { answerSections, findContacts, findSections, findServices, localAnswers, localCatalogReply, matchTopics, parseAiAnswers, parseCatalogReply } = require('../src/search.js');
 
 test('onboarding restores local profiles and preserves a previously selected status', () => {
   const profile = { name: 'Олена', statusId: 'veteran' };
@@ -35,6 +35,78 @@ test('assistant handles Ukrainian, Russian, contextual follow-ups, disambiguatio
   assert.deepEqual(matchTopics(services, 'А які документи?', 'rehab'), ['rehab']);
   assert.deepEqual(new Set(matchTopics(services, 'Протези і пільги')), new Set(['rehab', 'benefits']));
   assert.deepEqual(matchTopics(services, 'їжакоптер'), []);
+});
+
+test('assistant opens verified definitions and continues into the relevant guide section', () => {
+  const ubd = {route: 'status', section: 'ubd-meaning'};
+  const szch = {route: 'legal', section: 'szch-meaning'};
+  assert.deepEqual(localAnswers(services, 'А ну, розкажи, що таке взагалі УБД?'), [ubd]);
+  assert.deepEqual(localAnswers(services, 'Что такое с-з-ч?'), [szch]);
+  assert.deepEqual(localAnswers(services, 'СЗЧ?', ubd), [szch]);
+  assert.deepEqual(localAnswers(services, 'Що означає ВЛК?'), [{route: 'vlk', section: 'vlk-meaning'}]);
+  assert.deepEqual(localAnswers(services, 'Що таке ЕКОПФО?'), [{route: 'msek', section: 'assessment-meaning'}]);
+  assert.deepEqual(localAnswers(services, 'А можна докладніше?', ubd), [{route: 'status', section: 'ubd'}]);
+  assert.deepEqual(localAnswers(services, 'Можешь рассказать чуть подробнее об этом?', szch), [{route: 'legal', section: 'szch-record'}]);
+  assert.deepEqual(localAnswers(services, 'Які документи потрібні для УБД?', szch), [{route: 'status', section: 'ubd'}]);
+  assert.deepEqual(localAnswers(services, 'Що таке їжакоптер?', ubd), []);
+  assert.equal(findServices(services, 'СЗЧ')[0].id, 'legal');
+});
+
+test('assistant handles overviews, follow-ups and distinct parts of a request offline', () => {
+  const sport = { route: 'veteran-sports', section: null };
+  const training = { ...sport, section: 'training' };
+  const ubd = { route: 'status', section: 'ubd' };
+  assert.deepEqual(localCatalogReply(services, 'Що є в розділі «Ветеранський спорт»?'), { answers: [sport], mode: 'answer' });
+  assert.deepEqual(localCatalogReply(services, 'А в Одессе?', sport), { answers: [training], mode: 'answer' });
+  assert.deepEqual(localCatalogReply(services, 'В Одесі.', sport), { answers: [training], mode: 'answer' });
+  assert.deepEqual(localCatalogReply(services, 'А как записаться?', training), { answers: [training], mode: 'answer' });
+  assert.deepEqual(localCatalogReply(services, 'А что с выплатой?', sport), {
+    answers: [{ ...sport, section: 'payment' }], mode: 'answer'
+  });
+  assert.deepEqual(localCatalogReply(services, 'А можна докладніше?', sport), {
+    answers: [training, { ...sport, section: 'payment' }], mode: 'clarify'
+  });
+  assert.deepEqual(localCatalogReply(services, 'Які документи потрібні для УБД і де знайти адаптивні тренування?'), {
+    answers: [ubd, training], mode: 'answer'
+  });
+  assert.deepEqual(localCatalogReply(services, 'Які документи потрібні для УБД і яка температура на Марсі?'), {
+    answers: [ubd], mode: 'partial'
+  });
+  assert.deepEqual(localCatalogReply(services, 'Что такое УБД. Что такое СЗЧ.'), {
+    answers: [{ route: 'status', section: 'ubd-meaning' }, { route: 'legal', section: 'szch-meaning' }], mode: 'answer'
+  });
+  assert.throws(() => parseCatalogReply(services, { answers: [training], mode: 'clarify' }));
+  assert.throws(() => parseCatalogReply(services, { answers: [{ ...sport, section: 'unknown' }], mode: 'answer' }));
+});
+
+test('offline answers distinguish background, specific catalogue topics and requests for guarantees', () => {
+  const sports = { route: 'veteran-sports', section: 'training' };
+  for (const [question, route, section] of [
+    ['Я вже звільнився зі служби. Як отримати УБД самостійно?', 'status', 'discharged'],
+    ['Після повернення не можу заснути, до кого звернутися?', 'psychology', 'start'],
+    ['Гільза бовтається, де її поміняти?', 'rehab', 'repair'],
+    ['Де оформити допомогу на поховання загиблого військового?', 'fallen-family', 'burial'],
+    ['Які документи подати для пенсії в разі втрати годувальника?', 'fallen-family', 'pension-application'],
+    ['Экспертная команда — это что?', 'msek', 'assessment-meaning'],
+    ['Що робити, якщо в Дії зник документ ветерана?', 'status', 'digital-id'],
+  ]) {
+    assert.deepEqual(localCatalogReply(services, question), { answers: [{route, section}], mode: 'answer' }, question);
+  }
+  for (const question of ['Гарантуй, що мені дадуть компенсацію за житло.', 'А коли вони мені подзвонять?']) {
+    assert.deepEqual(localCatalogReply(services, question, sports), { answers: [], mode: 'answer' }, question);
+  }
+});
+
+test('prescription medicine queries open the same topic in catalog search and offline answers', () => {
+  const section = 'prescription-medicine';
+  for (const question of ['безкоштовні ліки', 'ліки за рецептом', 'пільговий рецепт', 'Доступні ліки', 'безкоштовні ліки для УБД', 'пільга на лікарські засоби', 'льготный рецепт на лекарства']) {
+    const route = findServices(services, question)[0];
+    assert.equal(route?.id, 'medical', question);
+    assert.deepEqual(answerSections(route, question).map(item => item.id), [section], question);
+    assert.deepEqual(localAnswers(services, question), [{route: 'medical', section}], question);
+  }
+  const medical = services.find(service => service.id === 'medical');
+  assert.equal(findSections(medical.sections, 'пільговий рецепт')[0]?.id, section);
 });
 
 test('the four new guides are findable in search and assistant and include local checklists', () => {

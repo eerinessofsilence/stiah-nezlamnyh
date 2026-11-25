@@ -25,9 +25,9 @@ export function GuideMotionProvider({ children }: { children: ReactNode }) {
       receivedChange = true;
       setReduced(enabled);
     });
-    void AccessibilityInfo.isReduceMotionEnabled().then(enabled => {
+    void AccessibilityInfo.isReduceMotionEnabled().catch(() => true).then(enabled => {
       if (current && !receivedChange) setReduced(enabled);
-    }, () => {});
+    });
     return () => {
       current = false;
       subscription.remove();

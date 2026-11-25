@@ -46,7 +46,7 @@ export function GuideLaunch({ ready, children }: { ready: boolean; children: Rea
   }, [animationFinished, laidOut, logoOpacity, logoReady, reduceMotion, visible]);
 
   useEffect(() => {
-    if (contentLaidOut && (animationFinished || reduceMotion !== false)) setVisible(false);
+    if (contentLaidOut && (animationFinished || reduceMotion === true)) setVisible(false);
   }, [animationFinished, contentLaidOut, reduceMotion]);
 
   return (

@@ -29,7 +29,7 @@ test("Dev text, recording and live share auth and reject unsupported provider re
       if (event.type === "input_audio_buffer.commit") {
         this.event({type: "input_audio_buffer.committed", item_id: "turn-1"});
         this.event({type: "conversation.item.input_audio_transcription.completed", item_id: "other", transcript: "skip"});
-        this.event({type: "conversation.item.input_audio_transcription.completed", item_id: "turn-1", transcript: " Як отримати УБД? "});
+        setTimeout(() => this.event({type: "conversation.item.input_audio_transcription.completed", item_id: "turn-1", transcript: " Як отримати УБД? "}), 20);
       }
     }
     event(event) { this.emit("message", Buffer.from(JSON.stringify(event))); }
@@ -46,16 +46,33 @@ test("Dev text, recording and live share auth and reject unsupported provider re
     if (url.endsWith("/audio/transcriptions")) {
       assert.equal(options.body.get("model"), "gpt-transcribe");
       assert.equal(options.body.get("file").type, "audio/mp4");
+      assert.deepEqual(options.body.getAll("languages[]"), ["uk", "ru"]);
+      assert(options.body.getAll("keywords[]").includes("в Одессе"));
       return Response.json({text: " УБД "});
     }
     const request = JSON.parse(options.body);
     const input = JSON.parse(request.input);
     assert(request.model === "gpt-6-luna" && request.store === false);
     assert(input.options.length <= 18);
+    if (selection === "ambiguous") {
+      const topic = input.options.find(entry => entry.route === "rehab" && entry.section === null);
+      return Response.json({output: [{type: "message", content: [{type: "output_text",
+        text: JSON.stringify({answers: [topic.number], mode: "answer"})}]}]});
+    }
+    if (selection === "context-overview") {
+      const topic = input.options.find(entry => entry.route === "veteran-sports" && entry.section === null);
+      return Response.json({output: [{type: "message", content: [{type: "output_text",
+        text: JSON.stringify({answers: [topic.number], mode: "answer"})}]}]});
+    }
     const match = input.options.find(entry => entry.route === "status" && entry.section === "ubd");
-    assert(match);
-    const answers = selection === "valid" ? [match.number] : selection === "empty" ? [] : [999];
-    return Response.json({output: [{type: "message", content: [{type: "output_text", text: JSON.stringify({answers})}]}]});
+    assert(match?.localMatch);
+    const training = input.options.find(entry => entry.route === "veteran-sports" && entry.section === "training");
+    const answers = selection === "combined" ? [match.number, training.number] :
+      selection === "valid" || selection === "partial" ? [match.number] : ["empty", "empty-partial"].includes(selection) ? [] : [999];
+    const mode = ["partial", "empty-partial"].includes(selection) ? "partial" : "answer";
+    const content = [{type: "output_text", text: JSON.stringify({answers, mode})}];
+    if (selection === "valid") content.unshift({type: "output_text", text: "Incomplete first attempt"});
+    return Response.json({output: [{type: "message", content}]});
   });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -69,11 +86,35 @@ test("Dev text, recording and live share auth and reject unsupported provider re
   assert.deepEqual(await (await realFetch(base, {headers: auth})).json(), {enabled: true, voice: true, revision});
   assert.equal((await ask(question, {})).status, 403);
   assert.equal((await ask({...question, revision: "old"})).status, 409);
-  assert.deepEqual(await (await ask(question)).json(), {answers: []});
+  assert.deepEqual(await (await ask(question)).json(), {answers: [], mode: "answer"});
+  selection = "empty-partial";
+  assert.deepEqual(await (await ask(question)).json(), {answers: [], mode: "answer"});
   selection = "valid";
-  assert.deepEqual(await (await ask(question)).json(), {answers: [{route: "status", section: "ubd"}]});
+  assert.deepEqual(await (await ask(question)).json(), {answers: [{route: "status", section: "ubd"}], mode: "answer"});
+  selection = "combined";
+  assert.deepEqual(await (await ask({...question, question: "Які документи потрібні для УБД і де знайти адаптивні тренування?"})).json(), {
+    answers: [{route: "status", section: "ubd"}, {route: "veteran-sports", section: "training"}], mode: "answer"
+  });
+  selection = "partial";
+  assert.deepEqual(await (await ask({...question, question: "Які документи потрібні для УБД і яка температура на Марсі?"})).json(), {
+    answers: [{route: "status", section: "ubd"}], mode: "partial"
+  });
+  selection = "ambiguous";
+  assert.deepEqual(await (await ask({...question, question: "Протези і пільги"})).json(), {
+    answers: [{route: "rehab", section: null}, {route: "benefits", section: null}], mode: "clarify"
+  });
+  selection = "context-overview";
+  const training = {route: "veteran-sports", section: "training"};
+  assert.deepEqual(await (await ask({...question, question: "А как записаться?", previous: training})).json(), {
+    answers: [training], mode: "answer"
+  });
   selection = "invalid";
   assert.equal((await ask(question)).status, 502);
+  const szch = {route: "legal", section: "szch-meaning"};
+  assert.deepEqual(await (await ask({...question, question: "Что такое вообще СЗЧ?"})).json(), {answers: [szch], mode: "answer"});
+  assert.deepEqual(await (await ask({...question, question: "А розкажи докладніше", previous: szch})).json(), {
+    answers: [{route: "legal", section: "szch-record"}], mode: "answer"
+  });
   const record = type => realFetch(base + "/transcribe", {
     method: "POST", headers: {...auth, "Content-Type": type}, body: new Uint8Array([1, 2])
   });
@@ -90,9 +131,11 @@ test("Dev text, recording and live share auth and reject unsupported provider re
   assert.deepEqual(JSON.parse(ready), {type: "ready"});
   client.send(Buffer.alloc(4800));
   client.send("commit");
+  client.send("keepalive");
   const [transcript] = await once(client, "message");
   assert.deepEqual(JSON.parse(transcript), {type: "transcript", text: "Як отримати УБД?"});
   assert.deepEqual(upstream.sent.map(event => event.type), ["session.update", "input_audio_buffer.append", "input_audio_buffer.commit"]);
+  assert.deepEqual(upstream.sent[0].session.audio.input.transcription.languages, ["uk", "ru"]);
   const shutdown = Promise.all([once(client, "close"), once(upstream, "terminated")]);
   client.close();
   await shutdown;

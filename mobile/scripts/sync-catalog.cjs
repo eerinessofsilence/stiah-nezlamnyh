@@ -29,6 +29,11 @@ for (const service of catalog.services) {
     assert.match(section.id, /^[a-z-]+$/);
     assert(section.keys, `Missing search terms: ${service.id}/${section.id}`);
     assert(section.source?.every(key => Object.hasOwn(catalog.sources, key)) ?? true, `Unknown section sources: ${service.id}/${section.id}`);
+    if (section.definition) {
+      const {nextSection} = section.definition;
+      assert(section.source?.length && (nextSection === null || (nextSection !== section.id && sections.has(nextSection))),
+        `Invalid definition: ${service.id}/${section.id}`);
+    }
     checkAction(section.action, `${service.id}/${section.id}`);
   }
   if (catalog.preparation[service.id]?.section) {

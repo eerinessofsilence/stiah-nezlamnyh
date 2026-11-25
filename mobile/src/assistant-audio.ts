@@ -17,11 +17,13 @@ type Live = {
   capturing: boolean;
   muted: boolean;
   awaiting: boolean;
+  confirmation: string | null;
   lead: Int16Array[];
   spokenMs: number;
   turnMs: number;
   quietMs: number;
   timer: ReturnType<typeof setTimeout>;
+  keepalive?: ReturnType<typeof setInterval>;
 };
 
 export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion, liveVoice }: {
@@ -49,6 +51,7 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
   const capturePending = useRef(false);
   const speech = useRef(0);
   const playing = useRef(false);
+  const speechStartTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const recordingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const recordState = useRef<'preparing' | 'recording' | 'recorded' | 'finishing' | null>(null);
   const { stream } = useAudioStream({ sampleRate: 24000, channels: 1, encoding: 'int16', onBuffer });
@@ -64,6 +67,7 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
 
   function stopSpeech() {
     speech.current++;
+    clearTimeout(speechStartTimer.current);
     playing.current = false;
     replyPulse.setValue(0);
     void Speech.stop().catch(() => {});
@@ -76,13 +80,19 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
       return;
     }
     const id = ++speech.current;
+    clearTimeout(speechStartTimer.current);
     playing.current = true;
-    if (live.current) setPhase('speaking');
     const done = () => {
       if (id !== speech.current) return;
+      clearTimeout(speechStartTimer.current);
       playing.current = false;
       replyPulse.setValue(0);
       if (live.current) setPhase('listening');
+    };
+    const failed = () => {
+      if (id !== speech.current) return;
+      stopSpeech();
+      setError('Не вдалося відтворити відповідь. Вона доступна в чаті.');
     };
     const pulse = () => {
       if (id !== speech.current || !live.current || reduced) return;
@@ -95,11 +105,18 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
       if (id !== speech.current) return;
       Speech.speak(text, {
         language: 'uk-UA', voice, rate: 0.95, useApplicationAudioSession: true,
-        onStart: pulse, onBoundary: pulse,
+        onStart: () => {
+          if (id !== speech.current) return;
+          clearTimeout(speechStartTimer.current);
+          if (live.current) setPhase('speaking');
+          pulse();
+        },
+        onBoundary: pulse,
         onDone: done, onStopped: done,
-        onError: () => { if (id === speech.current) setError('Не вдалося відтворити відповідь.'); done(); },
+        onError: failed,
       });
-    }).catch(done);
+    }).catch(failed);
+    speechStartTimer.current = setTimeout(failed, 5000);
   }
 
   function discardRecording() {
@@ -113,6 +130,7 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
     if (!session) return;
     live.current = null;
     clearTimeout(session.timer);
+    clearInterval(session.keepalive);
     session.socket.close();
     try { stream.stop(); } catch { /* The audio device may already be closed. */ }
     stopSpeech();
@@ -254,7 +272,7 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
         headers: token ? { Authorization: 'Bearer ' + token } : {},
       });
       const session: Live = {
-        socket, capturing: false, muted: false, awaiting: false,
+        socket, capturing: false, muted: false, awaiting: false, confirmation: null,
         lead: [], spokenMs: 0, turnMs: 0, quietMs: 0,
         timer: setTimeout(() => closeLive('Не вдалося підключитися. Можна продовжити в чаті.'), 12000),
       };
@@ -266,6 +284,9 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
           if (event.type === 'ready') {
             clearTimeout(session.timer);
             session.timer = setTimeout(() => closeLive('Голосову сесію завершено.'), 5 * 60_000);
+            session.keepalive = setInterval(() => {
+              if (socket.readyState === WebSocket.OPEN) socket.send('keepalive');
+            }, 20_000);
             await startCapture(session);
             if (live.current !== session) return;
             setPhase('listening');
@@ -274,7 +295,8 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
             if (text.length > 500) {
               onDraft(text);
               closeLive('Запитання задовге. Скоротіть його в чаті.');
-            } else if (text && /[0-9]|(?:^|[^\p{L}])(?:не|ні|убд|влк|екопфо|мсек|тисяч\p{L}*|грив\p{L}*|строк\p{L}*|термін\p{L}*|днів|день|місяц\p{L}*)(?=$|[^\p{L}])/iu.test(text)) {
+            } else if (text && /[0-9]|(?:^|[^\p{L}])(?:не|ні|убд|сзч|влк|екопфо|мсек|тисяч\p{L}*|грив\p{L}*|строк\p{L}*|термін\p{L}*|днів|день|місяц\p{L}*)(?=$|[^\p{L}])/iu.test(text)) {
+              session.confirmation = text;
               setConfirmation(text);
               setPhase('confirming');
             } else {
@@ -320,8 +342,9 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
   function confirmTranscript(edit: boolean) {
     if (phase !== 'confirming') return;
     const session = live.current;
-    if (!session || !confirmation) return;
-    const text = confirmation;
+    if (!session?.confirmation) return;
+    const text = session.confirmation;
+    session.confirmation = null;
     setConfirmation('');
     if (edit) {
       onDraft(text);
