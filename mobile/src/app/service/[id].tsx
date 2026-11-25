@@ -35,7 +35,7 @@ export default function ServiceScreen() {
 
   if (view === 'topic' && active) {
     return (
-      <GuideScreen title={active.title} titleAction={close}>
+      <GuideScreen title={active.title} titleType="sheetTitle" titleAction={close}>
         <GuidePanel>
           <SectionContent section={active} preparationId={preparationFor(active)} />
         </GuidePanel>
@@ -46,7 +46,7 @@ export default function ServiceScreen() {
   }
 
   return (
-    <GuideScreen title={service.title} titleAction={close}>
+    <GuideScreen title={service.title} titleType="sheetTitle" titleAction={close}>
       <GuideText type="support" tone="foregroundMuted">{service.desc}</GuideText>
       {active && <SectionCard key={id + active.id} section={active} preparationId={preparationFor(active)} initiallyOpen />}
       <RouteAction action={service.action} primary />

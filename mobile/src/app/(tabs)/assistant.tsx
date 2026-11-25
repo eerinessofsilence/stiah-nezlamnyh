@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useIsFocused } from 'expo-router/react-navigation';
 import { Fragment, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Alert, Animated, Keyboard, KeyboardAvoidingView, Platform, type HostInstance, type ScrollViewInstance, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Alert, Animated, Keyboard, KeyboardAvoidingView, Platform, type HostInstance, type ScrollViewInstance, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-screens/experimental';
 
@@ -58,6 +58,8 @@ export default function AssistantScreen() {
   const reduced = useReducedMotion();
   const screenFocused = useRef(focused);
   const ios = Platform.OS === 'ios';
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale >= 1.4;
   const { bottom } = useSafeAreaInsets();
   const { offline } = useGuideState();
   const [voiceReady, setVoiceReady] = useState<boolean>();
@@ -240,16 +242,21 @@ export default function AssistantScreen() {
     returnFromVoice.current = true;
     router.push('/assistant-voice');
   }
-  const title = (
+  const historyAction = (
+    <GuideIconButton ref={historyTrigger} icon="chats" label="Історія чатів" disabled={busyAudio} onPress={() => {
+      Keyboard.dismiss();
+      returnFromHistory.current = true;
+      router.push('/assistant-chats');
+    }} />
+  );
+  const fixedHeader = largeText ? undefined : (
     <View style={styles.titleRow}>
-      <GuideText type="title" style={styles.titleText}>Характерник</GuideText>
-      <GuideIconButton ref={historyTrigger} icon="chats" label="Історія чатів" disabled={busyAudio} onPress={() => {
-        Keyboard.dismiss();
-        returnFromHistory.current = true;
-        router.push('/assistant-chats');
-      }} />
+      <GuideText type="sheetTitle" style={styles.titleText}>Характерник</GuideText>
+      {historyAction}
     </View>
   );
+  // Break at a syllable boundary if the large title exceeds the full content width.
+  const scrollingTitle = largeText ? 'Характер\u00ADник' : undefined;
   const composer = (
     <View style={[styles.composer, { backgroundColor: colors.background }]}>
       {!!audio.error && <GuideText type="support" announcement>{audio.error}</GuideText>}
@@ -299,7 +306,8 @@ export default function AssistantScreen() {
 
   return (
     <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]} behavior={ios ? 'padding' : undefined}>
-      <GuideScreen fixedHeader={title} scrollRef={scroll} footerHeight={ios ? footerHeight : 0}
+      <GuideScreen fixedHeader={fixedHeader} title={scrollingTitle} titleType="sheetTitle"
+        titleAction={largeText ? historyAction : undefined} scrollRef={scroll} footerHeight={ios ? footerHeight : 0}
         onLayout={({ nativeEvent }) => { viewport.current.height = nativeEvent.layout.height; }}
         onScroll={({ nativeEvent }) => {
           const offset = nativeEvent.contentOffset.y;
@@ -396,7 +404,7 @@ function AssistantAnswer({ turn, answers, onChoose, onSpeak }: {
       <GuideText type={local ? 'section' : 'sheetTitle'} style={local ? styles.answerSection : styles.answerTitle}>
         {local ? local.title : section?.title ?? service.title}
       </GuideText>
-      {paragraphs?.map(paragraph => <GuideText key={paragraph} style={styles.answerParagraph}>{paragraph}</GuideText>)}
+      {paragraphs?.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)}
       {local && <ExternalLink url={local.dial} label={local.phone} icon={icons.phone} fullWidth />}
       {!section && !local && service.sections.map(item => <GuideButton key={item.id} label={item.title}
         row icon={icons.arrow} onPress={() => onChoose({ route: service.id, section: item.id })} />)}
@@ -417,9 +425,8 @@ const styles = StyleSheet.create({
   titleText: { flex: 1 },
   prompts: { gap: 8 },
   question: { alignSelf: 'flex-end', borderRadius: 16, maxWidth: '90%', padding: 12 },
-  answerTitle: { fontSize: 22, lineHeight: 28 },
+  answerTitle: { fontSize: 20, lineHeight: 26 },
   answerSection: { fontSize: 18, lineHeight: 24 },
-  answerParagraph: { fontSize: 14, lineHeight: 20 },
   docked: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   footer: { paddingHorizontal: guideContentInset },
   composer: { width: '100%', maxWidth: guideContentMaxWidth - 2 * guideContentInset, alignSelf: 'center', marginBottom: 12, gap: 8, borderRadius: composerRadius },

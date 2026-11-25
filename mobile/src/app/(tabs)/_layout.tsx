@@ -82,7 +82,7 @@ function HomeTabLabel({ tab, selected }: { tab: typeof guideTabs[number]; select
     <GuideStateIcon size={24} name={tab.icon} selectedName={tab.selectedIcon} selected={selected}
       color={colors.foregroundMuted} selectedColor={colors.accent} />
     <Animated.Text maxFontSizeMultiplier={2}
-      style={[selected ? typography.number : typography.meta, styles.label, { color, fontWeight: selected ? '700' : '600' }]}>
+      style={[typography.number, styles.label, selected && styles.selectedLabel, { color }]}>
       {tab.label}
     </Animated.Text>
   </>;
@@ -92,4 +92,5 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth },
   tab: { flex: 1, alignItems: 'center', minHeight: 64, gap: 4, paddingVertical: 12, paddingHorizontal: 2 },
   label: { textAlign: 'center' },
+  selectedLabel: { fontFamily: 'GuideBold' },
 });

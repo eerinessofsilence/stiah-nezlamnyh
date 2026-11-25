@@ -28,13 +28,19 @@ export function GuideContacts() {
 function ContactCard({ contact, featured = false }: { contact: typeof hotline; featured?: boolean }) {
   const source = sources[contact.source];
   const tone = featured ? 'onFeature' : 'foregroundMuted';
+  const phoneLink = (
+    <ExternalLink url={contact.dial} label={contact.phone} accessibilityLabel={`Зателефонувати: ${contact.phone}`}
+      copyLabel="Скопіювати номер" inlineCopy tone={featured ? 'onFeature' : 'accent'} />
+  );
   return (
     <GuidePanel tone={featured ? 'feature' : 'surface'}>
-      <GuideText heading tone={featured ? 'onFeature' : 'foreground'}>{contact.title}</GuideText>
+      <GuideText type={featured ? 'section' : 'item'} heading tone={featured ? 'onFeature' : 'foreground'}>
+        {contact.title}
+      </GuideText>
+      {featured && phoneLink}
       <GuideText type="support" tone={tone}>{contact.description}</GuideText>
       {contact.details && <GuideText type="support" tone={tone}>{contact.details}</GuideText>}
-      <ExternalLink url={contact.dial} label={contact.phone} accessibilityLabel={`Зателефонувати: ${contact.phone}`}
-        copyLabel="Скопіювати номер" inlineCopy tone={featured ? 'onFeature' : 'accent'} />
+      {!featured && phoneLink}
       {contact.email && <ExternalLink url={`mailto:${contact.email}`} label={contact.email} icon={icons.external} copyLabel="Скопіювати email" />}
       {source && <ExternalLink url={source[1]} label="Офіційне джерело" accessibilityLabel={`Офіційне джерело: ${contact.title}`}
         tone={featured ? 'onFeature' : 'accent'} icon={icons.external} />}

@@ -86,7 +86,7 @@ export default function NewsScreen() {
         onPress={() => { void openArticle(url, offline); }}>
         {!offline && image && <NewsPhoto key={image} uri={image} />}
         <GuideText type="meta" tone="foregroundMuted">{date}</GuideText>
-        <GuideText type="section">{title}</GuideText>
+        <GuideText type="item" heading>{title}</GuideText>
       </GuidePanel>)}
     </GuideScreen>
   );
