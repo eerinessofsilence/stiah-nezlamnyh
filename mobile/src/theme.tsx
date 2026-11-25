@@ -24,9 +24,6 @@ const light = {
   feature: '#20280f',
   featurePressed: '#343e20',
   onFeature: '#fbfbf6',
-  hero: '#142f30',
-  onHero: '#e0e5d8',
-  heroGradient: 'linear-gradient(to top, #142f30eb, #142f30ae 22%, #142f3038 45%, #142f3000 60%)',
 };
 
 const dark: typeof light = {
@@ -51,9 +48,6 @@ const dark: typeof light = {
   feature: '#11180d',
   featurePressed: '#25331c',
   onFeature: '#f0f2e8',
-  hero: '#142f30',
-  onHero: '#e0e5d8',
-  heroGradient: 'linear-gradient(to top, #142f30eb, #142f30ae 22%, #142f3038 45%, #142f3000 60%)',
 };
 
 const storageKey = 'nezlamnyi-color-scheme';

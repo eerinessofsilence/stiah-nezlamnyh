@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { checkedOn, type GuideSection, preparation, services } from '../../data/catalog';
 import { GuideBackButton, GuideButton, GuidePanel, GuideScreen, GuideText, ServiceList } from '../../guide';
 import { GuideDisclosure } from '../../guide-disclosure';
-import { RouteAction, RouteChecklist, RouteSources } from '../../route-actions';
+import { RouteAction, RoutePreparation, RouteSources } from '../../route-actions';
 import { useGuideColors } from '../../theme';
 
 export default function ServiceScreen() {
@@ -27,17 +27,17 @@ export default function ServiceScreen() {
     );
   }
 
-  const checklist = preparation[id];
+  const standalonePreparation = preparation[id];
   const active = service.sections.find(part => part.id === section);
   const lists = Object.entries(preparation).filter(([key]) => key === id || key.startsWith(id + ':'));
   const references = [...new Set([...service.source, ...lists.flatMap(([, list]) => list ? [list.source] : [])])];
-  const checklistFor = (part: GuideSection) => lists.find(([, list]) => list?.section === part.id)?.[0];
+  const preparationFor = (part: GuideSection) => lists.find(([, list]) => list?.section === part.id)?.[0];
 
   if (view === 'topic' && active) {
     return (
       <GuideScreen title={active.title} titleAction={close}>
         <GuidePanel>
-          <SectionContent section={active} checklistFor={checklistFor(active)} />
+          <SectionContent section={active} preparationId={preparationFor(active)} />
         </GuidePanel>
         <RouteSources key={service.id} sourceKeys={references} />
         <GuideText type="support" tone="foregroundMuted">Редакція від {checkedOn}</GuideText>
@@ -48,7 +48,7 @@ export default function ServiceScreen() {
   return (
     <GuideScreen title={service.title} titleAction={close}>
       <GuideText type="support" tone="foregroundMuted">{service.desc}</GuideText>
-      {active && <SectionCard key={id + active.id} section={active} checklistFor={checklistFor(active)} initiallyOpen />}
+      {active && <SectionCard key={id + active.id} section={active} preparationId={preparationFor(active)} initiallyOpen />}
       <RouteAction action={service.action} primary />
       <GuidePanel tone="surfaceSoft">
         <GuideText heading>З чого почати</GuideText>
@@ -61,10 +61,10 @@ export default function ServiceScreen() {
           </View>
         ))}
       </GuidePanel>
-      {checklist && !checklist.section && <RouteChecklist id={id} />}
+      {standalonePreparation && !standalonePreparation.section && <RoutePreparation id={id} />}
       <GuideText heading>{active ? 'Інші питання за темою' : 'Оберіть свою ситуацію'}</GuideText>
       {service.sections.filter(part => part !== active).map(part => (
-        <SectionCard key={id + part.id} section={part} checklistFor={checklistFor(part)} />
+        <SectionCard key={id + part.id} section={part} preparationId={preparationFor(part)} />
       ))}
       <GuideText heading>Пов’язані маршрути</GuideText>
       <ServiceList items={service.related.flatMap(relatedId => services.filter(item => item.id === relatedId))} />
@@ -74,22 +74,22 @@ export default function ServiceScreen() {
   );
 }
 
-function SectionCard({ section, checklistFor, initiallyOpen = false }: {
-  section: GuideSection; checklistFor?: string; initiallyOpen?: boolean;
+function SectionCard({ section, preparationId, initiallyOpen = false }: {
+  section: GuideSection; preparationId?: string; initiallyOpen?: boolean;
 }) {
   return (
     <GuideDisclosure label={section.title} initiallyOpen={initiallyOpen}>
-      <SectionContent section={section} checklistFor={checklistFor} />
+      <SectionContent section={section} preparationId={preparationId} />
     </GuideDisclosure>
   );
 }
 
-function SectionContent({ section, checklistFor }: { section: GuideSection; checklistFor?: string }) {
+function SectionContent({ section, preparationId }: { section: GuideSection; preparationId?: string }) {
   return (
     <>
       {section.paragraphs.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)}
       <RouteAction action={section.action} />
-      {checklistFor && <RouteChecklist id={checklistFor} />}
+      {preparationId && <RoutePreparation id={preparationId} />}
     </>
   );
 }

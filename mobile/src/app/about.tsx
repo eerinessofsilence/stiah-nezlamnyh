@@ -15,7 +15,7 @@ export default function AboutScreen() {
       </GuidePanel>
       <GuidePanel>
         <GuideText type="section">Конфіденційність</GuideText>
-        <GuideText type="support">У версії з магазину запитання обробляються на пристрої. Відмітки в чек-листах зберігаються в застосунку. Коли ви відкриваєте зовнішній сайт, діє його політика конфіденційності.</GuideText>
+        <GuideText type="support">У версії з магазину запитання обробляються на пристрої. Коли ви відкриваєте зовнішній сайт, діє його політика конфіденційності.</GuideText>
         {site && <>
           <ExternalLink label="Політика конфіденційності" url={site + '/privacy.html'} icon={icons.external} />
           <ExternalLink label="Підтримка" url={site + '/support.html'} icon={icons.external} />

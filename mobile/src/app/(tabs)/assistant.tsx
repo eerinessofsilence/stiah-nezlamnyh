@@ -1,20 +1,25 @@
+import { useRouter } from 'expo-router';
 import { useIsFocused } from 'expo-router/react-navigation';
 import { Fragment, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, ScrollView, type HostInstance, type ScrollViewInstance, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Alert, Animated, Keyboard, KeyboardAvoidingView, Platform, type HostInstance, type ScrollViewInstance, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-screens/experimental';
 
 import { checkedOn, preparation, revision, services, sources } from '../../data/catalog';
 import { hotline, localContacts } from '../../data/contacts';
-import { ExternalLink, GuideButton, guideContentInset, guideContentMaxWidth, GuideIcon, GuidePanel, GuidePressable, GuideScreen, GuideText, hasNativeHomeTabs, icons, RouteLink } from '../../guide';
+import { ExternalLink, GuideButton, guideContentInset, guideContentMaxWidth, GuideIcon, GuideIconButton, GuidePanel, GuidePressable, GuideScreen, GuideText, hasNativeHomeTabs, icons, RouteLink } from '../../guide';
 import { useGuideState } from '../../guide-state';
 import { RouteAction, RouteSources } from '../../route-actions';
 import { type AnswerChoice, answerSections, findContacts, localAnswers, parseAiAnswers } from '../../search';
-import { GuideInputFrame, GuideTextInput, GuideSheet, GuideSwitch } from '../../form-controls';
+import { GuideInputFrame, GuideTextInput } from '../../form-controls';
 import { useGuideColors } from '../../theme';
 import { useAssistantAudio } from '../../assistant-audio';
+import { AssistantRecordingBar } from '../../assistant-recording-bar';
+import { useSetAssistantVoiceSession } from '../../assistant-voice-session';
+import { useAssistantChats } from '../../assistant-chat-state';
+import type { Turn } from '../../assistant-chats';
 import { replyPresentation } from '../../assistant-reply';
-import { motion, useReducedMotion } from '../../guide-motion';
+import { focusGuideControl, motion, useReducedMotion } from '../../guide-motion';
 
 const prompts = [
   'Які документи потрібні для УБД?',
@@ -30,13 +35,6 @@ const remote = onlineEndpoint?.startsWith('https://');
 const noAnswer = 'У гіді немає підтвердженої відповіді на це запитання. Уточніть, про яку послугу йдеться, або зверніться на обласну ветеранську лінію.';
 const chooseTopic = 'Що саме вас цікавить?';
 const clarifyTopic = 'Уточніть, яка саме процедура або умова вас цікавить.';
-const voiceStatus = {
-  idle: '', permission: 'Доступ до мікрофона', recording: 'Записую…', transcribing: 'Розпізнаю…',
-  connecting: 'Підключаюся…', listening: 'Слухаю', confirming: 'Перевірте розпізнаний текст', thinking: 'Шукаю відповідь…',
-  speaking: 'Відповідаю', muted: 'Мікрофон вимкнено',
-};
-
-type Turn = { id: number; question: string; answers?: AnswerChoice[]; fallback?: string };
 
 function describeAnswer(question: string, answers: AnswerChoice[]) {
   if (answers.length > 1) return { text: chooseTopic };
@@ -51,46 +49,47 @@ function describeAnswer(question: string, answers: AnswerChoice[]) {
 }
 
 export default function AssistantScreen() {
+  const router = useRouter();
+  const { activeId, chats, getChat, getActiveId, updateChat } = useAssistantChats();
+  const { turns, question, voiceDraft } = chats.find(chat => chat.id === activeId)!;
+  const loading = turns.at(-1)?.answers === undefined && turns.length > 0;
   const colors = useGuideColors();
   const focused = useIsFocused();
   const reduced = useReducedMotion();
   const screenFocused = useRef(focused);
   const ios = Platform.OS === 'ios';
-  const { top, bottom } = useSafeAreaInsets();
+  const { bottom } = useSafeAreaInsets();
   const { offline } = useGuideState();
-  const [online, setOnline] = useState(false);
   const [voiceReady, setVoiceReady] = useState<boolean>();
   const [token, setToken] = useState('');
   const [tokenFocused, setTokenFocused] = useState(false);
-  const [voiceDraft, setVoiceDraft] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const pending = useRef(false);
-  const previous = useRef<AnswerChoice | null>(null);
-  const [question, setQuestion] = useState('');
-  const [turns, setTurns] = useState<Turn[]>([]);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [footerHeight, setFooterHeight] = useState(0);
   const [composerFocused, setComposerFocused] = useState(false);
-  const nextId = useRef(0);
   const revealTurn = useRef<number | null>(null);
   const replyScroll = useRef<number | null>(null);
-  const viewport = useRef({ offset: hasNativeHomeTabs ? -top : 0, height: 0, inset: hasNativeHomeTabs ? top : 0 });
+  const viewport = useRef({ offset: 0, height: 0, inset: 0 });
   const scroll = useRef<ScrollViewInstance>(null);
-  const liveTrigger = useRef<HostInstance>(null);
-  const voiceEnabled = Boolean(online && voiceReady && onlineEndpoint && !offline);
+  const composerAction = useRef<HostInstance>(null);
+  const historyTrigger = useRef<HostInstance>(null);
+  const returnFromHistory = useRef(false);
+  const returnFromVoice = useRef(false);
+  const setVoiceSession = useSetAssistantVoiceSession();
+  const devToken = token.trim();
+  const online = Boolean(onlineEndpoint && (!remote || devToken) && !offline);
+  const voiceEnabled = online && voiceReady === true;
   const audio = useAssistantAudio({
-    endpoint: onlineEndpoint, token: token.trim(), active: voiceEnabled && focused,
-    onDraft: text => { setQuestion(text); setVoiceDraft(true); },
+    endpoint: onlineEndpoint, token: devToken, active: voiceEnabled && focused,
+    onDraft: text => updateChat(activeId, chat => ({ ...chat, question: text, voiceDraft: true })),
     onQuestion: text => submit(text, true),
   });
-  const { liveOpen } = audio;
 
   useEffect(() => {
     setVoiceReady(undefined);
-    if (!online || !onlineEndpoint || offline) return;
+    if (!online || !onlineEndpoint) return;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort('timeout'), 6000);
-    const headers: Record<string, string> = token.trim() ? { Authorization: 'Bearer ' + token.trim() } : {};
+    const headers: Record<string, string> = devToken ? { Authorization: 'Bearer ' + devToken } : {};
     void fetch(onlineEndpoint, { headers, signal: controller.signal })
       .then(async response => {
         if (!response.ok) return false;
@@ -101,7 +100,7 @@ export default function AssistantScreen() {
       .catch(() => { if (!controller.signal.aborted || controller.signal.reason === 'timeout') setVoiceReady(false); })
       .finally(() => clearTimeout(timeout));
     return () => { clearTimeout(timeout); controller.abort(); };
-  }, [online, offline, token]);
+  }, [online, devToken]);
 
   useEffect(() => {
     screenFocused.current = focused;
@@ -109,6 +108,22 @@ export default function AssistantScreen() {
       revealTurn.current = null;
       replyScroll.current = null;
     }
+  }, [focused]);
+
+  useLayoutEffect(() => {
+    revealTurn.current = null;
+    replyScroll.current = null;
+    scroll.current?.scrollTo({ y: -viewport.current.inset, animated: false });
+  }, [activeId]);
+
+  useEffect(() => {
+    if (!focused || (!returnFromHistory.current && !returnFromVoice.current)) return;
+    const frame = requestAnimationFrame(() => {
+      focusGuideControl(returnFromVoice.current ? composerAction.current : historyTrigger.current);
+      returnFromHistory.current = false;
+      returnFromVoice.current = false;
+    });
+    return () => cancelAnimationFrame(frame);
   }, [focused]);
 
   useLayoutEffect(() => {
@@ -130,22 +145,21 @@ export default function AssistantScreen() {
 
   async function submit(text: string, fromLive = false) {
     const trimmed = text.trim();
-    if (!trimmed || trimmed.length > 500 || pending.current) return;
+    const chat = getChat(activeId);
+    const previous = chat?.turns.at(-1);
+    if (!chat || !trimmed || trimmed.length > 500 || (previous && !previous.answers)) return;
 
-    pending.current = true;
-    const id = nextId.current++;
+    const id = (previous?.id ?? -1) + 1;
     revealTurn.current = fromLive ? null : id;
-    setTurns(history => [...history, { id, question: trimmed }]);
-    if (!fromLive) {
-      setQuestion('');
-      setVoiceDraft(false);
-      Keyboard.dismiss();
-    }
-    const context = previous.current;
+    updateChat(activeId, current => ({
+      ...current, turns: [...current.turns, { id, question: trimmed }],
+      ...(!fromLive && { question: '', voiceDraft: false }),
+    }));
+    if (!fromLive) Keyboard.dismiss();
+    const context = previous?.answers?.length === 1 ? previous.answers[0] : null;
     let answers: AnswerChoice[];
     let fallback: string | undefined;
-    if (online && onlineEndpoint && !offline) {
-      setLoading(true);
+    if (online && onlineEndpoint) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 11000);
       try {
@@ -153,7 +167,7 @@ export default function AssistantScreen() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token.trim() && { Authorization: 'Bearer ' + token.trim() }),
+            ...(devToken && { Authorization: 'Bearer ' + devToken }),
           },
           body: JSON.stringify({ question: trimmed, previous: context, revision }),
           signal: controller.signal,
@@ -169,15 +183,14 @@ export default function AssistantScreen() {
         answers = localAnswers(services, trimmed, context);
       } finally {
         clearTimeout(timeout);
-        setLoading(false);
       }
     } else {
       answers = localAnswers(services, trimmed, context);
     }
-    pending.current = false;
-    previous.current = answers.length === 1 ? answers[0] : null;
-    setTurns(history => history.map(turn => turn.id === id ? { ...turn, answers, fallback } : turn));
-    if (!fromLive && screenFocused.current) AccessibilityInfo.announceForAccessibility(answers.length > 1 ? 'Уточніть запит' : answers.length ? 'Відповідь готова' : 'Відповіді не знайдено');
+    updateChat(activeId, current => ({
+      ...current, turns: current.turns.map(turn => turn.id === id ? { ...turn, answers, fallback } : turn),
+    }));
+    if (!fromLive && screenFocused.current && getActiveId() === activeId) AccessibilityInfo.announceForAccessibility(answers.length > 1 ? 'Уточніть запит' : answers.length ? 'Відповідь готова' : 'Відповіді не знайдено');
     return fallback ?? describeAnswer(trimmed, answers).text;
   }
 
@@ -187,13 +200,12 @@ export default function AssistantScreen() {
     const service = services.find(item => item.id === choice.route);
     const matches = !choice.section && service ? answerSections(service, turn.question) : [];
     const answers = matches.length ? matches.map(({ id }) => ({ route: choice.route, section: id })) : [choice];
-    if (id === turns.at(-1)?.id) previous.current = answers.length === 1 ? answers[0] : null;
-    setTurns(history => history.map(item => item.id === id ? { ...item, answers } : item));
+    updateChat(activeId, current => ({ ...current, turns: current.turns.map(item => item.id === id ? { ...item, answers } : item) }));
     AccessibilityInfo.announceForAccessibility('Запит уточнено');
   }
 
   function revealReply(id: number, y: number) {
-    const follow = revealTurn.current === id && focused && !liveOpen;
+    const follow = revealTurn.current === id && focused;
     if (revealTurn.current === id) revealTurn.current = null;
     const { offset, height, inset } = viewport.current;
     const safeBottom = hasNativeHomeTabs && !keyboardOpen ? bottom : 0;
@@ -207,38 +219,52 @@ export default function AssistantScreen() {
   }
 
   const busyAudio = audio.phase !== 'idle';
-  const canSend = !loading && !busyAudio && question.trim().length > 0 && question.trim().length <= 500;
+  const questionLength = question.trim().length;
+  const composerReady = !loading && !busyAudio;
+  const canSend = composerReady && questionLength > 0 && questionLength <= 500;
+  const showLiveAction = voiceEnabled && questionLength === 0;
+  const canStartVoice = composerReady && questionLength === 0;
+  const actionEnabled = showLiveAction ? canStartVoice : canSend;
   const inputLimit = voiceDraft ? Math.max(500, question.length) : 500;
+  function openVoice() {
+    if (!onlineEndpoint) return;
+    if (!audio.voice) {
+      Alert.alert('Потрібен український голос', 'Додайте український голос у налаштуваннях пристрою.');
+      return;
+    }
+    Keyboard.dismiss();
+    setVoiceSession({ endpoint: onlineEndpoint, token: devToken, voice: audio.voice,
+      onDraft: text => updateChat(activeId, chat => ({ ...chat, question: text, voiceDraft: true })),
+      onQuestion: text => submit(text, true),
+    });
+    returnFromVoice.current = true;
+    router.push('/assistant-voice');
+  }
+  const title = (
+    <View style={styles.titleRow}>
+      <GuideText type="title" style={styles.titleText}>Характерник</GuideText>
+      <GuideIconButton ref={historyTrigger} icon="chats" label="Історія чатів" disabled={busyAudio} onPress={() => {
+        Keyboard.dismiss();
+        returnFromHistory.current = true;
+        router.push('/assistant-chats');
+      }} />
+    </View>
+  );
   const composer = (
     <View style={[styles.composer, { backgroundColor: colors.background }]}>
-      {!!audio.error && !liveOpen && <GuideText type="support" announcement>{audio.error}</GuideText>}
-      {voiceDraft && <GuideText type="support" announcement>{question.trim().length > 500
+      {!!audio.error && <GuideText type="support" announcement>{audio.error}</GuideText>}
+      {voiceDraft && <GuideText type="support" announcement>{questionLength > 500
         ? 'Скоротіть запитання до 500 символів.' : 'Перевірте розпізнаний текст перед надсиланням.'}</GuideText>}
-      {voiceEnabled && !busyAudio && <View style={styles.voiceActions}>
-        <GuideButton label="Записати повідомлення" disabled={loading || Boolean(question.trim())} onPress={() => {
-          Keyboard.dismiss();
-          void audio.startRecording();
-        }} />
-        <GuideButton label="Почати розмову" ref={liveTrigger} disabled={loading || Boolean(question.trim())} onPress={() => {
-          Keyboard.dismiss();
-          void audio.startLive();
-        }} />
-      </View>}
-      {!liveOpen && audio.phase === 'recording' && <GuidePanel>
-        <GuideText type="support">Записую… {audio.seconds} с</GuideText>
-        <View style={styles.voiceActions}>
-          <GuideButton label="Скасувати" onPress={audio.cancel} />
-          <GuideButton label="Зупинити запис" variant="primary" onPress={() => void audio.finishRecording(true)} />
-        </View>
-      </GuidePanel>}
-      {!liveOpen && audio.phase === 'transcribing' && <GuideText type="support" announcement>Розпізнаю запис…</GuideText>}
-      <GuideInputFrame focused={composerFocused} radius={composerRadius} style={styles.composerRow}>
+      {audio.phase === 'recording' || audio.phase === 'stopping' || audio.phase === 'recorded' || audio.phase === 'transcribing' ? (
+        <AssistantRecordingBar recorder={audio.recorder} phase={audio.phase} onCancel={audio.cancel}
+          onStop={() => void audio.finishRecording('keep')} onTranscribe={() => void audio.finishRecording('transcribe')} />
+      ) : <GuideInputFrame focused={composerFocused} radius={composerRadius} style={styles.composerRow}>
         <GuideTextInput
           accessibilityLabel="Запитання Характернику"
           placeholder="Напишіть запитання"
           compactPlaceholder="Запит"
           value={question}
-          onChangeText={setQuestion}
+          onChangeText={text => updateChat(activeId, chat => ({ ...chat, question: text, voiceDraft: chat.voiceDraft && Boolean(text) }))}
           onFocus={() => setComposerFocused(true)}
           onBlur={() => setComposerFocused(false)}
           autoComplete="off"
@@ -247,23 +273,37 @@ export default function AssistantScreen() {
           editable={!busyAudio}
           maxLength={inputLimit}
         />
-        <GuidePressable accessibilityRole="button" accessibilityLabel="Надіслати запитання"
+        {voiceEnabled && <GuidePressable accessibilityRole="button" accessibilityLabel="Записати повідомлення"
+          accessibilityState={{ disabled: !canStartVoice }} disabled={!canStartVoice}
+          onPress={() => { Keyboard.dismiss(); void audio.startRecording(); }}
+          style={[styles.composerAction, { backgroundColor: canStartVoice ? colors.surfaceSoft : colors.surface }]}>
+          <GuideIcon name="microphone" color={canStartVoice ? colors.foreground : colors.foregroundMuted} size={20} />
+        </GuidePressable>}
+        <GuidePressable ref={composerAction} accessibilityRole="button"
+          accessibilityLabel={showLiveAction ? 'Почати розмову' : 'Надіслати запитання'}
           focusColor={colors.onFeature} pressedColor={colors.featurePressed}
-          accessibilityState={{ disabled: !canSend }} disabled={!canSend} onPress={() => submit(question)}
-          style={[styles.send, { backgroundColor: canSend ? colors.feature : colors.surfaceMuted }]}>
-          <GuideIcon name="paper-plane-right-fill" color={canSend ? colors.onFeature : colors.foregroundMuted} size={20} />
+          accessibilityState={{ disabled: !actionEnabled }} disabled={!actionEnabled} onPress={() => {
+            if (showLiveAction) {
+              openVoice();
+            } else {
+              void submit(question);
+            }
+          }}
+          style={[styles.composerAction, { backgroundColor: actionEnabled ? colors.feature : colors.surfaceMuted }]}>
+          <GuideIcon name={showLiveAction ? 'waveform' : 'paper-plane-right-fill'}
+            color={actionEnabled ? colors.onFeature : colors.foregroundMuted} size={20} />
         </GuidePressable>
-      </GuideInputFrame>
+      </GuideInputFrame>}
     </View>
   );
 
   return (
     <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]} behavior={ios ? 'padding' : undefined}>
-      <GuideScreen scrollRef={scroll} footerHeight={ios ? footerHeight : 0}
+      <GuideScreen fixedHeader={title} scrollRef={scroll} footerHeight={ios ? footerHeight : 0}
         onLayout={({ nativeEvent }) => { viewport.current.height = nativeEvent.layout.height; }}
         onScroll={({ nativeEvent }) => {
           const offset = nativeEvent.contentOffset.y;
-          const inset = Math.max(nativeEvent.contentInset.top, hasNativeHomeTabs ? top : 0);
+          const inset = nativeEvent.contentInset.top;
           viewport.current = { offset, height: nativeEvent.layoutMeasurement.height, inset };
           if (replyScroll.current !== null && Math.abs(replyScroll.current - offset) <= 1) replyScroll.current = null;
         }}
@@ -272,35 +312,19 @@ export default function AssistantScreen() {
           replyScroll.current = null;
         }}
         onMomentumScrollEnd={() => { replyScroll.current = null; }}>
-        {turns.length === 0 ? <ImageBackground
-          source={require('../../../assets/coast.webp')}
-          style={[styles.intro, { backgroundColor: colors.hero }]}
-          imageStyle={styles.illustration}
-        >
-          <View pointerEvents="none" style={[styles.shade, { experimental_backgroundImage: colors.heroGradient }]} />
-          <GuideText type="title" tone="onHero">Характерник</GuideText>
-          <GuideText type="support" tone="onHero">Запитайте про документи, пільги, лікування або допомогу на Одещині.</GuideText>
-        </ImageBackground> : <GuideText type="title">Характерник</GuideText>}
-        {onlineEndpoint && <GuidePanel>
-          <View style={styles.mode}>
-            <GuideText type="support" style={styles.modeText}>Онлайн-помічник</GuideText>
-            <GuideSwitch accessibilityLabel="Онлайн-помічник" value={online} onValueChange={setOnline} disabled={loading || busyAudio || Boolean(remote && !token.trim())} />
-          </View>
-          {!online && <GuideText type="meta" tone="foregroundMuted">Онлайн-режим надсилає запитання й тему розмови на сервер гіда та OpenAI. Якщо ввімкнете голос, туди також піде аудіо для розпізнавання. Не вказуйте номери документів, імена й медичні дані.</GuideText>}
-          {online && voiceReady === false && <GuideText type="meta" tone="foregroundMuted">Голосовий режим зараз недоступний.</GuideText>}
-          {remote && !online && <GuideInputFrame focused={tokenFocused}>
-            <GuideTextInput value={token} onChangeText={setToken} secureTextEntry autoCapitalize="none" autoCorrect={false}
-              onFocus={() => setTokenFocused(true)} onBlur={() => setTokenFocused(false)}
-              accessibilityLabel="Код доступу до Dev" placeholder="Код доступу до Dev" compactPlaceholder="Код Dev" />
-          </GuideInputFrame>}
-        </GuidePanel>}
+        {remote && <GuideInputFrame focused={tokenFocused}>
+          <GuideTextInput value={token} onChangeText={setToken} secureTextEntry autoCapitalize="none" autoCorrect={false}
+            editable={!loading && !busyAudio} onFocus={() => setTokenFocused(true)} onBlur={() => setTokenFocused(false)}
+            accessibilityLabel="Код доступу до Dev" placeholder="Код доступу до Dev" compactPlaceholder="Код Dev" />
+        </GuideInputFrame>}
+        {online && voiceReady === false && <GuideText type="meta" tone="foregroundMuted">Голосовий режим зараз недоступний.</GuideText>}
         {turns.length === 0 && <View style={styles.prompts}>
           {prompts.map(label => (
             <GuideButton key={label} label={label} row icon={icons.arrow} disabled={loading || busyAudio} onPress={() => void submit(label)} />
           ))}
         </View>}
         {turns.map((turn) => (
-          <Fragment key={turn.id}>
+          <Fragment key={`${activeId}:${turn.id}`}>
             <View style={[styles.question, { backgroundColor: colors.feature }]}>
               <GuideText type="support" tone="onFeature">{turn.question}</GuideText>
             </View>
@@ -318,21 +342,6 @@ export default function AssistantScreen() {
           {composer}
         </View>
       </SafeAreaView>
-      {onlineEndpoint && <GuideSheet title="Голосова розмова" open={liveOpen} trigger={liveTrigger} doneLabel="Завершити розмову"
-        onClose={audio.cancel}>
-        <GuideText announcement>{voiceStatus[audio.phase]}</GuideText>
-        {!!audio.error && <GuideText type="support" announcement>{audio.error}</GuideText>}
-        {audio.phase === 'confirming' ? <GuidePanel>
-          <ScrollView style={styles.transcript}><GuideText>{audio.confirmation}</GuideText></ScrollView>
-          <GuideButton label="Підтвердити" variant="primary" onPress={() => audio.confirmTranscript(false)} />
-          <GuideButton label="Виправити в чаті" onPress={() => audio.confirmTranscript(true)} />
-        </GuidePanel> : <>
-        <GuideButton label={audio.phase === 'muted' ? 'Увімкнути мікрофон' : 'Вимкнути мікрофон'}
-          disabled={audio.phase === 'connecting' || audio.phase === 'permission'} onPress={() => void audio.toggleMic()} />
-        {audio.phase === 'speaking' ? <GuideButton label="Перервати відповідь" onPress={audio.stopSpeech} /> :
-          <GuideButton label="Я закінчив" disabled={audio.phase !== 'listening'} onPress={audio.commit} />}
-        </>}
-      </GuideSheet>}
     </KeyboardAvoidingView>
   );
 }
@@ -373,7 +382,7 @@ function AssistantAnswer({ turn, answers, onChoose, onSpeak }: {
   return <GuidePanel>
     {turn.fallback && <GuideText type="meta" tone="foregroundMuted">{turn.fallback} Знімок гіда від {checkedOn}.</GuideText>}
     {answers.length > 1 ? <>
-      <GuideText type="section">{chooseTopic}</GuideText>
+      <GuideText type="section" style={styles.answerSection}>{chooseTopic}</GuideText>
       {answers.map(choice => {
         const topic = services.find(item => item.id === choice.route);
         const part = topic?.sections.find(item => item.id === choice.section);
@@ -384,8 +393,10 @@ function AssistantAnswer({ turn, answers, onChoose, onSpeak }: {
       <GuideText type="support">{noAnswer}</GuideText>
       <ExternalLink url={hotline.dial} label={hotline.phone} variant="primary" icon={icons.phone} />
     </> : <>
-      <GuideText type={local ? 'section' : 'sheetTitle'}>{local ? local.title : section?.title ?? service.title}</GuideText>
-      {paragraphs?.map(paragraph => <GuideText key={paragraph}>{paragraph}</GuideText>)}
+      <GuideText type={local ? 'section' : 'sheetTitle'} style={local ? styles.answerSection : styles.answerTitle}>
+        {local ? local.title : section?.title ?? service.title}
+      </GuideText>
+      {paragraphs?.map(paragraph => <GuideText key={paragraph} style={styles.answerParagraph}>{paragraph}</GuideText>)}
       {local && <ExternalLink url={local.dial} label={local.phone} icon={icons.phone} fullWidth />}
       {!section && !local && service.sections.map(item => <GuideButton key={item.id} label={item.title}
         row icon={icons.arrow} onPress={() => onChoose({ route: service.id, section: item.id })} />)}
@@ -399,18 +410,19 @@ function AssistantAnswer({ turn, answers, onChoose, onSpeak }: {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  intro: { borderRadius: 18, overflow: 'hidden', paddingHorizontal: 16, paddingBottom: 24, paddingTop: 84, gap: 8 },
-  illustration: { borderRadius: 18 },
-  shade: { ...StyleSheet.absoluteFill },
+  titleRow: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 8,
+    width: '100%', maxWidth: guideContentMaxWidth, paddingTop: 12, paddingHorizontal: guideContentInset,
+  },
+  titleText: { flex: 1 },
   prompts: { gap: 8 },
   question: { alignSelf: 'flex-end', borderRadius: 16, maxWidth: '90%', padding: 12 },
+  answerTitle: { fontSize: 22, lineHeight: 28 },
+  answerSection: { fontSize: 18, lineHeight: 24 },
+  answerParagraph: { fontSize: 14, lineHeight: 20 },
   docked: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   footer: { paddingHorizontal: guideContentInset },
-  mode: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  modeText: { flex: 1 },
   composer: { width: '100%', maxWidth: guideContentMaxWidth - 2 * guideContentInset, alignSelf: 'center', marginBottom: 12, gap: 8, borderRadius: composerRadius },
-  transcript: { maxHeight: 160 },
-  voiceActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  composerRow: { gap: 8, paddingVertical: 4, paddingLeft: 12, paddingRight: 4 },
-  send: { width: 52, height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  composerRow: { gap: 4, paddingVertical: 4, paddingLeft: 12, paddingRight: 4 },
+  composerAction: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

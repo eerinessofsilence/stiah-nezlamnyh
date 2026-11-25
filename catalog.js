@@ -8,6 +8,7 @@ const catalogSources = {
   legalDocuments: ["Що підготувати до звернення по правничу допомогу", "https://legalaid.gov.ua/kliyentam/chy-mayu-ya-pravo-na-bezoplatnu-vtorynnu-pravovu-dopomogu/ya-uchasnyk-ato/", "13.11.2026"],
   rehabDocuments: ["Документи для протезування · Мінсоцполітики", "https://www.msp.gov.ua/press-center/news/dostupne-protezuvannya:-yak-otrymaty-protez-v-ukrayini", "13.11.2026"],
   hub: ["Мінветеранів · ветеранські простори Одещини", "https://mva.gov.ua/ua/veteranam/veteranski-prostori/odeska-oblast", "19.11.2026"],
+  odesaCityHub: ["Одеська РДА · адреси ветеранських хабів", "https://odrda.od.gov.ua/2026/03/04/v-odeskomu-rajoni-praczyuyut-veteranski-haby-i-prostory-cze-misczya-de-vijskovosluzhbovczi-veterany-ta-yihni-rodyny-otrymuyut-soczialnu-psyhologichnu-yurydychnu-dopomogu-prohodyat-navch/", "25.11.2026"],
   escort: ["Як знайти фахівця із супроводу", "https://oda.od.gov.ua/ua/news/yak-veteranam-i-veterankam-znajti-fahivczya-iz-suprovodu-ta-otrimati-dopomogu", "13.11.2026"],
   career: ["Кар’єра ветерана — працевлаштування", "https://oda.od.gov.ua/ua/news/kar-yera-veterana-platforma-dlya-praczevlashtuvannya-veteraniv-i-veteranok", "13.11.2026"],
   veteranPro: ["Державна платформа Ветеран PRO", "https://veteranpro.gov.ua/", "13.11.2026"],
@@ -40,6 +41,7 @@ const catalogSources = {
 
 const catalogCheckedOn = "19.11.2026";
 const familyAndAssessmentCheckedOn = "23.11.2026";
+const editionCheckedOn = "25.11.2026";
 
 Object.assign(catalogSources, {
   combatantOrder: ["Міноборони · автоматичний і комісійний порядок УБД", "https://mod.gov.ua/news/poryadok-ta-shlyahi-nabuttya-statusu-ubd", catalogCheckedOn],
@@ -90,6 +92,10 @@ Object.assign(catalogSources, {
   fallenRecords: ["Міноборони · доступ родини до службових документів", "https://mod.gov.ua/explanation/zakryta-informatsiia-yaki-vidomosti-ne-mozhut-otrymaty-rodyny-znyklykh-polonenykh-i-zahyblykh-viiskovykh", familyAndAssessmentCheckedOn],
   fallenVolunteers: ["Кабмін · порядок допомоги № 336", "https://zakon.rada.gov.ua/laws/show/336-2016-%D0%BF#Text", familyAndAssessmentCheckedOn],
   fallenBurial: ["Міноборони · допомога на поховання", "https://mod.gov.ua/diyalnist/normativno-pravova-baza/soczialnij-zahist-vijskovosluzhbovcziv", familyAndAssessmentCheckedOn],
+  sportsDirectory: ["Ігри Нескорених · мапа адаптивних тренувань і контакти", "https://invictusgames.in.ua/join-community/", editionCheckedOn],
+  sportsOdesa: ["Одеська ОВА · адаптивний спорт у громадах Одещини", "https://oda.od.gov.ua/ua/news/sila-ch-est-peremoga-sport-yakij-ob-yednuye-veteraniv-odeshhini", editionCheckedOn],
+  sportsProgramStatus: ["Мінветеранів · стан програми «Ветеранський спорт»", "https://mva.gov.ua/prescenter/category/86-novini/zhovtneviy-etap-programi-veteranskiy-sport-ne-startuvatime--minveteraniv-pratsue-nad-ii-prodovzhennyam-u-2027-rotsi", editionCheckedOn],
+  sportsDiia: ["Дія · умови попереднього етапу програми", "https://diia.gov.ua/news/veteranskyi-sport-z-1-lypnia-podavaite-zaiavu-pro-1-500-hrn-dlia-zaniat-sportom", editionCheckedOn],
 });
 
 function topic(id, title, keys, paragraphs, action, source) {
@@ -631,7 +637,7 @@ const catalogServices = [
     related: ["status", "vlk", "rehab", "benefits"]
   },
   {
-    id: "injury", title: "Після поранення", group: "health",
+    id: "injury", title: "Поранення/захворювання/каліцтво", group: "health",
     desc: "Документи з госпіталю та частини, виплати й подальше відновлення.",
     keys: "поранення поранений контузія травма госпіталь лікування форма 100 довідка обставини ранен ранение",
     source: ["militaryInjury", "injuryOrder", "injuryPay", "injuryGrant", "rehabilitation"],
@@ -685,6 +691,27 @@ const catalogServices = [
       ])
     ],
     related: ["escort", "medical"]
+  },
+  {
+    id: "veteran-sports", title: "Ветеранський спорт", group: "health",
+    desc: "Де тренуватися, як записатися та що з виплатою в Дії.",
+    keys: "спорт тренування адаптивний спорт ветеранський спорт спортивні секції спортзал басейн плавання 1500 1 500 вільні воїни ветеранский спорт тренировки",
+    source: ["sportsDirectory", "sportsOdesa", "sportsProgramStatus", "sportsDiia"],
+    action: ["tel:+380938198208", "Запис в Одесі · 093 819 82 08"],
+    steps: [
+      "В Одесі зателефонуйте до спільноти «Вільні воїни». Скажіть, який вид спорту вас цікавить, і запитайте про найближче тренування, вартість, спорядження та доступність приміщення.",
+      "Якщо шукаєте заняття в іншому місті, відкрийте мапу адаптивних тренувань. Оберіть область і зв’яжіться з організаторами перед візитом."
+    ],
+    sections: [
+      topic("training", "Де знайти адаптивні тренування", "тренування|секція|адаптивний спорт|одеса|одещина|плавання|басейн|волейбол|баскетбол|вільні воїни", [
+        "В Одесі «Вільні воїни» пропонують, зокрема, волейбол сидячи, баскетбол і піклбол на кріслах колісних, плавання та боччу. Уточніть у спільноти, які групи зараз набирають учасників."
+      ], ["sportsDirectory", "Відкрити мапу адаптивних тренувань"], ["sportsDirectory", "sportsOdesa"]),
+      topic("payment", "Чи можна отримати 1 500 грн у Дії", "1500|1 500|допомога на спорт|виплата на спорт|дія картка|заява на спорт", [
+        "За жовтень–грудень 2026 року виплату 1 500 грн не проводять. Прийом заяв у Дії на цей етап не відкрили. Мінветеранів працює над продовженням програми у 2027 році. Перед поданням перевірте нові умови й дати в повідомленнях Мінветеранів і Дії.",
+        "На попередньому етапі могли подати заяву люди від 18 років зі статусом УБД або особи з інвалідністю внаслідок війни в Єдиному державному реєстрі ветеранів війни, підтвердженим податковим номером і Дія.Карткою. Допомога покривала оплату занять у спортивних закладах."
+      ], ["sportsProgramStatus", "Прочитати повідомлення Мінветеранів"], ["sportsProgramStatus", "sportsDiia"])
+    ],
+    related: ["rehab", "escort"]
   }
 ];
 
@@ -882,8 +909,11 @@ const regionalContacts = [
 
 const catalogLocalContacts = [
   {
-    keys: "одеса одесі одеська одеській одесса одессе",
-    ...regionalContacts[1]
+    keys: "одеса одесі одеська одеській одесса одессе хаб косовська косівська косовская",
+    title: "Сервісний офіс «Хаб Ветеран» · Одеса",
+    description: "Консультації й допомога з оформленням статусів та пільг для ветеранів, ветеранок і їхніх родин.",
+    details: "м. Одеса, вул. Косовська, 2-Д (ЦНАП, каб. 201)",
+    phone: "(048) 705 32 26", dial: "tel:+380487053226", email: "hub.veteran@dpsp.omr.gov.ua", source: "odesaCityHub"
   },
   {
     keys: "ізмаїл ізмаїлі ізмаїльська ізмаїльській измаил",
@@ -891,6 +921,10 @@ const catalogLocalContacts = [
     description: "Для запису зателефонуйте до приймальні міськради і попросіть з’єднати з фахівцем із супроводу.",
     details: "м. Ізмаїл, просп. Незалежності, 62, каб. 108, 1-й поверх. Приймальня: Пн–Чт 08:00–17:00, Пт 08:00–16:00, перерва 13:00–14:00.",
     phone: "(04841) 2 00 36", dial: "tel:+380484120036", source: "izmailEscort"
+  },
+  {
+    keys: "одеса одесі одеська одеській одесса одессе",
+    ...regionalContacts[1]
   },
   {
     keys: "одеса одесі одеська одеській одесса одессе",
@@ -939,5 +973,5 @@ const catalogLocalContacts = [
 ];
 
 const catalog = {sources: catalogSources, services: catalogServices, preparation: routePreparation,
-  groups: routeGroups, featured: featuredRoutes, checkedOn: familyAndAssessmentCheckedOn, contacts: regionalContacts, localContacts: catalogLocalContacts};
+  groups: routeGroups, featured: featuredRoutes, checkedOn: editionCheckedOn, contacts: regionalContacts, localContacts: catalogLocalContacts};
 if (typeof module !== "undefined") module.exports = catalog;

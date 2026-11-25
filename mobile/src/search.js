@@ -159,20 +159,6 @@ const guideSearch = (() => {
     return sections.length ? sections.map(({id}) => ({route, section: id})) : [{route, section: null}];
   }
 
-  function routeProgressSummary(id, preparation, checked) {
-    const lists = Object.entries(preparation).filter(([key]) => key === id || key.startsWith(id + ":"));
-    const primary = lists.find(([key]) => key === id);
-    const active = lists.findLast(([key, list]) => list.items.some(([item]) => checked.includes(key + ":" + item)));
-    const [key, list] = active ?? primary ?? [];
-    if (!list) return {section: null, total: 0, completed: 0, next: null};
-    const pending = list.items.find(([item]) => !checked.includes(key + ":" + item));
-    return {
-      section: list.section ?? null, total: list.items.length,
-      completed: list.items.filter(([item]) => checked.includes(key + ":" + item)).length,
-      next: pending?.[1] ?? null
-    };
-  }
-
   function parseAiAnswers(services, value) {
     if (!Array.isArray(value) || value.length > 2) throw new Error("Invalid assistant response");
     return value.map(item => {
@@ -185,7 +171,7 @@ const guideSearch = (() => {
     });
   }
 
-  return {findServices, findSections, matchTopics, answerSections, findContacts, localAnswers, parseAiAnswers, routeProgressSummary, normalized};
+  return {findServices, findSections, matchTopics, answerSections, findContacts, localAnswers, parseAiAnswers, normalized};
 })();
 
 if (typeof module !== "undefined") module.exports = guideSearch;

@@ -2,8 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const { services, preparation, sources, contacts, localContacts, featured } = require('../src/data/catalog.json');
 const { readProfile, statuses } = require('../src/guide-profile.ts');
-const { answerSections, findContacts, findSections, findServices, localAnswers, matchTopics, parseAiAnswers, routeProgressSummary } = require('../src/search.js');
-const { readProgress, toggleProgress } = require('../src/route-progress.ts');
+const { answerSections, findContacts, findSections, findServices, localAnswers, matchTopics, parseAiAnswers } = require('../src/search.js');
 
 test('onboarding restores local profiles and preserves a previously selected status', () => {
   const profile = { name: 'Олена', statusId: 'veteran' };
@@ -162,23 +161,6 @@ test('urgent scenarios, colloquial search and local contacts are discoverable', 
     [{route: 'rehab', section: 'first-prosthesis'}]);
   assert(statuses.find(status => status.id === 'disability').serviceIds.includes('msek'));
   assert.equal(findContacts(localContacts, 'релевантного немає').length, 0);
-});
-
-test('checklist marks round-trip with stable IDs and load from legacy progress', () => {
-  const items = new Set(Object.entries(preparation).flatMap(([id, checklist]) => checklist.items.map(([key]) => `${id}:${key}`)));
-  const empty = { checked: [] };
-  assert.deepEqual(readProgress(null, items), empty);
-  assert.deepEqual(readProgress('{', items), empty);
-  const status = readProgress('{"saved":["status"],"checked":["status:ubd:application","status:ubd:application","status:unknown",null]}', items);
-  assert.deepEqual(status, { checked: ['status:ubd:application'] });
-  const progress = toggleProgress(status, 'rehab:identity');
-  assert.deepEqual(progress, { checked: ['status:ubd:application', 'rehab:identity'] });
-  assert.deepEqual(readProgress(JSON.stringify(progress), items), progress);
-  assert.deepEqual(toggleProgress(progress, 'rehab:identity'), status);
-  const summary = routeProgressSummary('status', preparation, status.checked);
-  assert.equal(summary.section, 'ubd');
-  assert.equal(summary.completed, 1);
-  assert.equal(summary.total, 3);
 });
 
 test('all four contact cards point to an official source and a dialable number', () => {

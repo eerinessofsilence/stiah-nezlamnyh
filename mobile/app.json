@@ -2,7 +2,7 @@
   "expo": {
     "name": "Гід: Стяг незламних",
     "slug": "stiah-nezlamnykh",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "scheme": "stiahnezlamnykh",
     "platforms": [
       "ios",
@@ -12,9 +12,10 @@
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "app.stiahnezlamnykh.guide",
-      "buildNumber": "7",
+      "buildNumber": "8",
       "icon": "./assets/Stiah.icon",
       "infoPlist": {
+        "CFBundleDisplayName": "Стяг незламних",
         "CFBundleDevelopmentRegion": "uk",
         "CFBundleLocalizations": [
           "uk"
@@ -23,7 +24,7 @@
     },
     "android": {
       "package": "app.stiahnezlamnykh.guide",
-      "versionCode": 4,
+      "versionCode": 5,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE"
@@ -39,6 +40,7 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
+      "./plugins/with-app-display-name",
       [
         "expo-audio",
         {

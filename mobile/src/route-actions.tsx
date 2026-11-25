@@ -1,11 +1,10 @@
 import { useRouter } from 'expo-router';
-import { AccessibilityInfo, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { preparation, sources } from './data/catalog';
 import { ExternalLink, GuideButton, GuidePanel, GuideText, icons } from './guide';
 import { GuideDisclosure } from './guide-disclosure';
-import { GuideCheckbox } from './form-controls';
-import { useGuideState } from './guide-state';
+import { useGuideColors } from './theme';
 
 export function RouteAction({ action, primary = false }: { action?: string[]; primary?: boolean }) {
   const router = useRouter();
@@ -35,37 +34,29 @@ export function RouteSources({ sourceKeys }: { sourceKeys: string[] }) {
   );
 }
 
-export function RouteChecklist({ id }: { id: string }) {
-  const { progress, retryProgress, toggleChecked } = useGuideState();
-  const checklist = preparation[id];
-  if (!checklist) return null;
-
-  const items = checklist.items.map(([key, label]) => {
-    const itemId = `${id}:${key}`;
-    return { itemId, label, checked: progress?.checked.includes(itemId) ?? false };
-  });
-  const progressLabel = (checked: string[]) =>
-    `${items.filter(({ itemId }) => checked.includes(itemId)).length} із ${items.length} підготовлено`;
+export function RoutePreparation({ id }: { id: string }) {
+  const colors = useGuideColors();
+  const list = preparation[id];
+  if (!list) return null;
 
   return (
-    <GuidePanel tone="surfaceSoft" style={styles.checklist}>
+    <GuidePanel tone="surfaceSoft">
       <GuideText type="section">Що підготувати</GuideText>
-      {progress ? <GuideText type="number" tone="foregroundMuted">{progressLabel(progress.checked)}</GuideText> : <>
-        <GuideText>Не вдалося відкрити відмітки.</GuideText>
-        <GuideButton label="Спробувати ще раз" onPress={retryProgress} />
-      </>}
-      {items.map(({ itemId, label, checked }) => (
-        <GuideCheckbox key={itemId} label={label} value={checked} disabled={!progress}
-          onValueChange={() => {
-            const next = toggleChecked(itemId);
-            if (next) AccessibilityInfo.announceForAccessibility(progressLabel(next.checked));
-          }} style={styles.item} />
-      ))}
+      <View role="list" style={styles.list}>
+        {list.items.map(([key, label]) => (
+          <View key={key} role="listitem" style={styles.item}>
+            <View aria-hidden style={[styles.marker, { backgroundColor: colors.accent }]} />
+            <GuideText type="support" style={styles.label}>{label}</GuideText>
+          </View>
+        ))}
+      </View>
     </GuidePanel>
   );
 }
 
 const styles = StyleSheet.create({
-  checklist: { gap: 8 },
-  item: { minHeight: 48 },
+  list: { gap: 8 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  marker: { width: 6, height: 6, borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  label: { flex: 1 },
 });

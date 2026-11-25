@@ -33,7 +33,10 @@ test("Dev text, recording and live share auth and reject unsupported provider re
       }
     }
     event(event) { this.emit("message", Buffer.from(JSON.stringify(event))); }
-    terminate() { this.readyState = WebSocket.CLOSED; }
+    terminate() {
+      this.readyState = WebSocket.CLOSED;
+      this.emit("terminated");
+    }
   }
   ws.WebSocket = TestProvider;
   const server = require("../server.cjs");
@@ -90,7 +93,8 @@ test("Dev text, recording and live share auth and reject unsupported provider re
   const [transcript] = await once(client, "message");
   assert.deepEqual(JSON.parse(transcript), {type: "transcript", text: "Як отримати УБД?"});
   assert.deepEqual(upstream.sent.map(event => event.type), ["session.update", "input_audio_buffer.append", "input_audio_buffer.commit"]);
+  const shutdown = Promise.all([once(client, "close"), once(upstream, "terminated")]);
   client.close();
-  await once(client, "close");
+  await shutdown;
   assert.equal(upstream.readyState, WebSocket.CLOSED);
 });

@@ -1,4 +1,4 @@
-import type { GuideSection, preparation, Service } from './data/catalog';
+import type { GuideSection, Service } from './data/catalog';
 
 export type AnswerChoice = { route: string; section: string | null };
 
@@ -10,7 +10,3 @@ export function findContacts<T extends { keys: string }>(contacts: T[], query: s
 export function localAnswers(services: Service[], question: string, previous?: AnswerChoice | null): AnswerChoice[];
 export function parseAiAnswers(services: Service[], value: unknown): AnswerChoice[];
 export function normalized(text: string): string;
-
-export function routeProgressSummary(id: string, lists: typeof preparation, checked: string[]): {
-  section: string | null; total: number; completed: number; next: string | null;
-};

@@ -25,10 +25,11 @@ export const guideContentMaxWidth = 448;
 // Match the horizontal inset of the floating tab bar on iPhone.
 export const guideContentInset = Platform.OS === 'ios' && !Platform.isPad && hasNativeHomeTabs ? 20 : 12;
 
-export function GuideScreen({ title, titleAction, titleType = 'title', children, sheet = false, scrollRef, adjustForKeyboard = false, showOfflineNotice = false, footerHeight = 0, onScroll, onLayout, onScrollBeginDrag, onMomentumScrollEnd }: {
+export function GuideScreen({ title, titleAction, titleType = 'title', fixedHeader, children, sheet = false, scrollRef, adjustForKeyboard = false, showOfflineNotice = false, footerHeight = 0, onScroll, onLayout, onScrollBeginDrag, onMomentumScrollEnd }: {
   title?: string;
   titleAction?: ReactNode;
   titleType?: 'title' | 'sheetTitle';
+  fixedHeader?: ReactNode;
   children: ReactNode;
   sheet?: boolean;
   scrollRef?: Ref<ScrollViewInstance>;
@@ -138,10 +139,11 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
     </ScrollView>
   );
 
+  const safeTop = { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right };
   if (!nativeEdgeEffects && !sheet) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top,
-        paddingLeft: insets.left, paddingRight: insets.right }}>
+      <View style={[{ flex: 1, backgroundColor: colors.background }, safeTop]}>
+        {fixedHeader}
         {scrollView}
       </View>
     );
@@ -151,12 +153,13 @@ export function GuideScreen({ title, titleAction, titleType = 'title', children,
   return (
     <View {...(Platform.OS === 'ios' && !sheet && activeTab >= 0 ? tabSwipe.panHandlers : undefined)}
       style={{ flex: 1 }}>
+      {fixedHeader && <View style={[{ backgroundColor: colors.background }, safeTop]}>{fixedHeader}</View>}
       {nativeEdgeEffects ? (
         <ScrollViewMarker style={styles.edgeScroll} scrollEdgeEffects={{ top: 'hidden', bottom: 'soft' }}>
           {scrollView}
         </ScrollViewMarker>
       ) : scrollView}
-      {StatusEdge && !sheet && insets.top > 0 && (
+      {StatusEdge && !sheet && !fixedHeader && insets.top > 0 && (
         <StatusEdge pointerEvents="none" materialTint={colors.background}
           style={[styles.statusEdge, { height: insets.top + 16 }]} />
       )}
@@ -180,6 +183,7 @@ const serviceIcons: Record<string, GuideIconName> = {
   msek: 'clipboard-text',
   injury: 'bandaids',
   psychology: 'heartbeat',
+  'veteran-sports': 'person-simple-walk',
 };
 
 export const icons = {
@@ -288,14 +292,22 @@ export function GuidePressable({ style, onFocus, onBlur, onPressIn, onPressOut, 
   );
 }
 
-export function GuideBackButton({ label, onPress }: { label: string; onPress: () => void }) {
+export function GuideIconButton({ icon, label, onPress, ref, disabled, iconSize = 20, surface = 'surface' }: {
+  icon: GuideIconName; label: string; onPress: () => void; ref?: ComponentProps<typeof GuidePressable>['ref']; disabled?: boolean; iconSize?: number;
+  surface?: 'surface' | 'background';
+}) {
   const colors = useGuideColors();
   return (
-    <GuidePressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
-      style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.iconButtonBorder }]}>
-      <GuideIcon name={icons.back} size={20} />
+    <GuidePressable ref={ref} accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
+      disabled={disabled} accessibilityState={{ disabled }}
+      style={[styles.iconButton, { backgroundColor: colors[surface], borderColor: colors.iconButtonBorder, opacity: disabled ? 0.5 : 1 }]}>
+      <GuideIcon name={icon} size={iconSize} />
     </GuidePressable>
   );
+}
+
+export function GuideBackButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return <GuideIconButton icon={icons.back} label={label} onPress={onPress} />;
 }
 
 type ServiceListItem = Service | { service: Service; section: GuideSection };
@@ -304,10 +316,12 @@ function serviceListKey(item: ServiceListItem) {
   return 'section' in item ? `${item.service.id}:${item.section.id}` : item.id;
 }
 
-export function ServiceList({ items, tiles = false, subtitle, openSection, onOpen }: {
+export function ServiceList({ items, tiles = false, subtitle, openSection, onOpen, showChevron = true, style }: {
   items: ServiceListItem[]; tiles?: boolean;
   subtitle?: (service: Service) => string; openSection?: (service: Service) => string | null;
   onOpen?: (service: Service, section?: string) => void;
+  showChevron?: boolean;
+  style?: ComponentProps<typeof View>['style'];
 }) {
   const colors = useGuideColors();
   const router = useRouter();
@@ -350,7 +364,7 @@ export function ServiceList({ items, tiles = false, subtitle, openSection, onOpe
               <GuideText type="item">{title}</GuideText>
               {!!description && <GuideText type="support" tone="foregroundMuted">{description}</GuideText>}
             </View>
-            <GuideIcon name={icons.next} color={colors.foregroundMuted} size={16} />
+            {showChevron && <GuideIcon name={icons.next} color={colors.foregroundMuted} size={16} />}
           </>
         )}
       </GuidePressable>
@@ -370,13 +384,13 @@ export function ServiceList({ items, tiles = false, subtitle, openSection, onOpe
     );
   }
   return (
-    <View style={[styles.list, { backgroundColor: colors.surface, borderColor: colors.borderStrong }]}>
+    <View style={[styles.list, { backgroundColor: colors.surface, borderColor: colors.borderStrong }, style]}>
       {items.map((item, index) => serviceCard(item, index === items.length - 1))}
     </View>
   );
 }
 
-export type GuideTextTone = 'foreground' | 'foregroundMuted' | 'accent' | 'onFeature' | 'onHero';
+export type GuideTextTone = 'foreground' | 'foregroundMuted' | 'accent' | 'onFeature';
 
 const headingRamps: Partial<Record<keyof typeof typography, ComponentProps<typeof Text>['dynamicTypeRamp']>> = {
   title: 'title1', sheetTitle: 'title2', section: 'title3',
@@ -417,11 +431,15 @@ function GuideAnnouncement({ message }: { message: string }) {
   return null;
 }
 
-export function GuidePanel({ children, tone = 'surface', style }: {
+export function GuidePanel({ children, tone = 'surface', style, onPress, accessibilityLabel }: {
   children: ReactNode; tone?: 'surface' | 'surfaceSoft' | 'feature'; style?: ComponentProps<typeof View>['style'];
+  onPress?: () => void; accessibilityLabel?: string;
 }) {
   const colors = useGuideColors();
-  return <View style={[styles.panel, { backgroundColor: colors[tone], borderColor: tone === 'surface' ? colors.borderStrong : colors[tone] }, style]}>{children}</View>;
+  const panelStyle = [styles.panel, { backgroundColor: colors[tone], borderColor: tone === 'surface' ? colors.borderStrong : colors[tone] }, style];
+  return onPress
+    ? <GuidePressable accessibilityRole="link" accessibilityLabel={accessibilityLabel} onPress={onPress} style={panelStyle}>{children}</GuidePressable>
+    : <View style={panelStyle}>{children}</View>;
 }
 
 type ButtonAppearance = {
@@ -565,7 +583,7 @@ export function ExternalLink({ url, variant, compact = false, copyLabel, inlineC
 }
 
 const styles = StyleSheet.create({
-  backButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  iconButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   screen: { gap: 12, paddingHorizontal: guideContentInset, paddingTop: 12, paddingBottom: 16, width: '100%', maxWidth: guideContentMaxWidth, alignSelf: 'center' },
   edgeScroll: { flex: 1 },
   statusEdge: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 },

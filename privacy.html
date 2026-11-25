@@ -20,17 +20,18 @@
 
     <section aria-labelledby="app-data">
       <h2 id="app-data">Дані в застосунку</h2>
-      <p>Застосунок працює без облікового запису. У версіях з App Store і Google Play пошук та «Характерник» працюють із вбудованим каталогом на пристрої. Запитання й пошукові запити не надсилаються команді гіда, зовнішнім сервісам або постачальникам ШІ. У застосунку немає реклами й аналітичних трекерів.</p>
+      <p>Застосунок працює без облікового запису. У версіях з App Store і Google Play пошук та «Характерник» працюють із вбудованим каталогом на пристрої. У цих версіях запитання й пошукові запити не надсилаються команді гіда, зовнішнім сервісам або постачальникам ШІ. У застосунку немає реклами й аналітичних трекерів.</p>
+      <p>У тестовій збірці з налаштованим сервером «Характерник» автоматично надсилає відправлене запитання й тему розмови на сервер гіда для підбору розділу. Якщо сервер використовує OpenAI, ці дані також надходять до OpenAI. Під час голосової дії аудіо надходить на сервер гіда та в OpenAI для розпізнавання. Для тестів використовуйте запитання без персональних даних.</p>
       <ul>
         <li><strong>Вибраний статус</strong> зберігається в застосунку на пристрої. Щоб змінити його, натисніть іншу плитку статусу на головній. Якщо ви вказали ім’я в попередній версії, воно також залишається в локальному сховищі. Повне видалення застосунку прибирає ці дані.</li>
-        <li><strong>Відмітки в чек-листах і вибір теми</strong> зберігаються на пристрої й відновлюються після перезапуску. Відмітки можна зняти в картці маршруту. Старіші версії також зберігали закладки маршрутів на пристрої. Повне видалення застосунку прибирає ці дані з його локального сховища. Системними резервними копіями керують iOS або Android.</li>
-        <li><strong>Історія запитань до «Характерника»</strong> залишається в пам’яті поточного сеансу та зникає після повного перезапуску застосунку.</li>
+        <li><strong>Вибір теми</strong> зберігається на пристрої й відновлюється після перезапуску. Відмітки та закладки зі старіших версій можуть залишатися в локальному сховищі. Повне видалення застосунку прибирає ці дані з його локального сховища. Системними резервними копіями керують iOS або Android.</li>
+        <li><strong>Чати «Характерника»</strong> разом із назвами, чернетками й закріпленнями залишаються в пам’яті поточного сеансу та зникають після повного перезапуску застосунку. Окремий чат можна видалити в історії чатів.</li>
       </ul>
     </section>
 
     <section aria-labelledby="external">
       <h2 id="external">Новини, посилання й дзвінки</h2>
-      <p>Коли відкрито вкладку «Новини» й доступний інтернет, гід завантажує заголовки, дати й зображення з mva.gov.ua. Сайт може отримати технічні дані запитів, зокрема IP-адресу. Гід не надсилає йому ваш статус, запити або запитання. Дані останньої завантаженої стрічки зберігаються на пристрої для перегляду офлайн.</p>
+      <p>Коли відкрито вкладку «Новини» й доступний інтернет, гід завантажує стрічки з mva.gov.ua та veteran.com.ua, щоб показати заголовки, дати й зображення. Ці сайти можуть отримати технічні дані запитів, зокрема IP-адресу. Гід не надсилає їм ваш статус, пошукові запити або запитання. Заголовки, дати й посилання останньої завантаженої стрічки з кожного сайту зберігаються на пристрої для перегляду офлайн.</p>
       <p>Коли ви відкриваєте посилання, номер телефону або адресу електронної пошти, гід передає вибрану дію системному застосунку. Подальшу обробку визначає відповідний сайт, поштовий сервіс або оператор зв’язку.</p>
       <p>Публічні сторінки підтримки й приватності розміщено на Cloudflare. Для доставки й захисту цих сторінок Cloudflare може обробляти технічні дані запитів, зокрема IP-адресу. На сторінках немає форм збору даних або коду аналітики. <a href="https://www.cloudflare.com/privacypolicy/">Політика Cloudflare</a>.</p>
     </section>
@@ -43,8 +44,9 @@
 
     <section id="english" lang="en" aria-labelledby="english-title">
       <h2 id="english-title">Privacy policy summary</h2>
-      <p>For the iOS and Android app «Гід: Стяг незламних». No account is required. In store builds, search and the guide assistant work on-device. The app sends no queries or questions to the project or to AI providers and includes no advertising or analytics trackers.</p>
-      <p>Your selected status, checklist marks and theme preference stay in local app storage. To change your status, tap a different status tile on the home screen. Older versions also stored route bookmarks and an optional name on the device. You can remove marks in the route or delete the app to remove its local data. The operating system controls backups. Assistant history clears after a full app restart.</p>
+      <p>For the iOS and Android app «Гід: Стяг незламних». No account is required. In store builds, search and the guide assistant work on-device and send no queries or questions to the project or to AI providers. The app includes no advertising or analytics trackers.</p>
+      <p>In test builds with a server configured, the assistant automatically sends submitted questions and the current topic to the guide server. If the server uses OpenAI, it forwards these data to OpenAI. During voice use, the guide server forwards audio to OpenAI for transcription. Use questions without personal data for testing.</p>
+      <p>Your selected status and theme preference stay in local app storage. To change your status, tap a different status tile on the home screen. Checklist marks, route bookmarks and an optional name from older versions may remain on the device. Deleting the app removes its local data. The operating system controls backups. Assistant chats, titles, drafts and pins stay in session memory and clear after a full app restart. You can remove individual chats from chat history.</p>
       <p>The News tab retrieves public news and images from mva.gov.ua when open and online. The site can receive technical request data such as your IP address. Your status, searches and questions are excluded from these requests. The app keeps the latest feed metadata locally for offline viewing.</p>
       <p>External websites, calls and email use the device’s system apps. Cloudflare may process technical request data when you open these public pages. If you email support, the project uses your address and message to respond and keeps the correspondence as long as needed to handle the request. For privacy questions or to request deletion of support correspondence, email <a href="mailto:stiah.guide@gmail.com">stiah.guide@gmail.com</a>.</p>
     </section>
