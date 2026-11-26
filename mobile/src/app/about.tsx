@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { askAssistantConsent, storeAssistantEndpoint } from '../assistant-online';
+import { askAssistantConsent, askVoiceConsent, storeAssistantEndpoint, storeVoiceEndpoint } from '../assistant-online';
 import { GuideSwitch } from '../form-controls';
 import { ExternalLink, GuideBackButton, GuidePanel, GuideScreen, GuideText, icons } from '../guide';
 import { useGuideState } from '../guide-state';
@@ -11,7 +11,7 @@ const site = siteUrl?.startsWith('https://') ? siteUrl.replace(/\/+$/, '') : und
 
 export default function AboutScreen() {
   const router = useRouter();
-  const { assistantConsent, saveAssistantConsent } = useGuideState();
+  const { assistantConsent, saveAssistantConsent, voiceConsent, saveVoiceConsent } = useGuideState();
   return (
     <GuideScreen title="Про гід" showOfflineNotice
       titleAction={<GuideBackButton label="Назад" onPress={() => router.canGoBack() ? router.back() : router.replace('/menu')} />}>
@@ -31,6 +31,14 @@ export default function AboutScreen() {
           </View>
           <GuideText type="support">Пошук у гіді працює на пристрої. З вашим дозволом «Характерник» може звертатися до OpenAI для добору відповіді.</GuideText>
         </> : <GuideText type="support">Пошук у гіді працює на пристрої. Коли ви відкриваєте зовнішній сайт, діє його політика конфіденційності.</GuideText>}
+        {storeVoiceEndpoint && <View style={styles.row}>
+          <GuideText type="item" style={styles.label}>Голосова допомога</GuideText>
+          <GuideSwitch accessibilityLabel="Голосова допомога" value={voiceConsent}
+            onValueChange={enabled => {
+              if (enabled) void askVoiceConsent().then(allowed => { if (allowed) saveVoiceConsent(true); });
+              else saveVoiceConsent(false);
+            }} />
+        </View>}
         {site && <>
           <ExternalLink label="Політика конфіденційності" url={site + '/privacy.html'} icon={icons.external} />
           <ExternalLink label="Підтримка" url={site + '/support.html'} icon={icons.external} />

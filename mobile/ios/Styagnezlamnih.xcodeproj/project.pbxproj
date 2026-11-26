@@ -377,7 +377,6 @@
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Styagnezlamnih/Info.plist;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Характерник використовує мікрофон, щоб розпізнати голосове запитання.";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

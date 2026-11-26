@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react';
 import {
-  Animated, type HostInstance, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, type TextInstance, TextInput, useWindowDimensions, View,
+  Animated, type HostInstance, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, type TextInstance, TextInput, useWindowDimensions, View, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,6 +10,7 @@ import { useGuideColors } from './theme';
 import { typography } from './typography';
 
 const defaultInputRadius = 12;
+export const guideInputActionStyle: ViewStyle = { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' };
 
 export function GuideInputFrame({ children, focused = false, radius = defaultInputRadius, style, transparent = false }: {
   children: ReactNode; focused?: boolean; radius?: 10 | 12 | 18; style?: ComponentProps<typeof View>['style']; transparent?: boolean;
@@ -24,17 +25,23 @@ export function GuideInputFrame({ children, focused = false, radius = defaultInp
 // Use native font metrics so the hint and editable text have the same baseline.
 const { fontFamily, fontSize } = typography.body;
 
-export function GuideTextInput({ placeholder, compactPlaceholder, ...props }:
-  Omit<ComponentProps<typeof TextInput>, 'style' | 'multiline'> & { compactPlaceholder: string }) {
+export function GuideTextInput({ placeholder, compactPlaceholder, maxLines, ...props }:
+  Omit<ComponentProps<typeof TextInput>, 'style' | 'multiline'> & { compactPlaceholder: string; maxLines?: number }) {
   const colors = useGuideColors();
   const { fontScale, width } = useWindowDimensions();
-  // UIKit shrinks a long hint to fit a single line, independently of the typed text.
+  const lineHeight = Math.ceil(typography.body.lineHeight * fontScale);
+  const minHeight = lineHeight + 12;
   const hint = fontScale >= 1.4 || (fontScale > 1 && width < 360) ? compactPlaceholder : placeholder;
-  return <TextInput {...props} accessibilityLanguage="uk" placeholder={hint} placeholderTextColor={colors.placeholder}
-    selectionColor={colors.accent} underlineColorAndroid="transparent"
+  const multiline = maxLines !== undefined && maxLines > 1;
+  const verticalPadding = Math.max(6, (44 - lineHeight) / 2);
+  // Native multiline measurement can size an empty field from the placeholder.
+  const heightLimit = props.value === '' ? lineHeight : (maxLines ?? 1) * lineHeight;
+  const input = <TextInput {...props} accessibilityLanguage="uk" placeholder={hint} placeholderTextColor={colors.placeholder}
+    selectionColor={colors.accent} underlineColorAndroid="transparent" multiline={multiline}
     style={[styles.input, {
-      minHeight: Math.ceil(typography.body.lineHeight * fontScale) + 12, color: colors.foreground,
-    }]} />;
+      minHeight: multiline ? lineHeight : minHeight, color: colors.foreground,
+    }, multiline && { flex: 0, maxHeight: heightLimit, lineHeight: typography.body.lineHeight, textAlignVertical: 'top' }]} />;
+  return multiline ? <View style={[styles.growingInput, { paddingVertical: verticalPadding }]}>{input}</View> : input;
 }
 
 export function GuideTextArea({ label, editable = true, ...props }: Pick<ComponentProps<typeof TextInput>,
@@ -276,6 +283,7 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   frame: { minHeight: 52, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12 },
   input: { flex: 1, alignSelf: 'stretch', minWidth: 0, fontFamily, fontSize, padding: 0, includeFontPadding: false, textAlignVertical: 'center' },
+  growingInput: { flex: 1, minWidth: 0, alignSelf: 'center' },
   textArea: { flex: 1, minHeight: 120, fontFamily, fontSize, paddingVertical: 12, includeFontPadding: false },
   pressable: { alignSelf: 'stretch', borderRadius: defaultInputRadius },
   selectField: { width: '100%', gap: 8, paddingVertical: 8 },

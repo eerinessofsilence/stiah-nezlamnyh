@@ -1,8 +1,8 @@
 import type { GuideSection, Service } from './data/catalog';
 
 export type AnswerChoice = { route: string; section: string | null; paragraphs?: number[] };
-export type Conversation = 'greeting' | 'available' | 'thanks' | 'about' | 'offTopic';
-export type CatalogReply = { answers: AnswerChoice[]; mode: 'answer' | 'clarify' | 'partial'; conversation?: Conversation };
+export type Conversation = 'greeting' | 'available' | 'wellbeing' | 'thanks' | 'about' | 'unclear' | 'offTopic';
+export type CatalogReply = { answers: AnswerChoice[]; mode: 'answer' | 'clarify' | 'partial'; conversation?: Conversation; text?: string };
 export const conversationReplies: Record<Conversation, string>;
 
 export function findServices(services: Service[], query: string): Service[];

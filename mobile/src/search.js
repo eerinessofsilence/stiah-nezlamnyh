@@ -278,8 +278,10 @@ const guideSearch = (() => {
   const conversationReplies = {
     greeting: "Вітаю! Чим можу допомогти?",
     available: "Так, я на зв’язку. Чим можу допомогти?",
+    wellbeing: "Дякую, що питаєте. У мене все гаразд, я на зв’язку. А як ви?",
     thanks: "Будь ласка! Якщо виникне ще запитання, звертайтеся.",
     about: "Я Характерник, помічник ветеранського гіда. Можу пояснити ветеранський термін або допомогти знайти послугу в гіді.",
+    unclear: "Можете уточнити, що маєте на увазі?",
     offTopic: "Можу допомогти з ветеранськими послугами, документами й контактами з гіда. Що з цього вас цікавить?",
   };
 
@@ -289,6 +291,11 @@ const guideSearch = (() => {
     if (!["answer", "clarify", "partial"].includes(mode) || (mode === "clarify" && answers.length < 2) ||
         (mode === "partial" && !answers.length)) throw new Error("Invalid assistant response");
     const conversation = value.conversation;
+    if (value.text !== undefined) {
+      if (mode !== "answer" || answers.length || conversation !== undefined || typeof value.text !== "string" ||
+          !value.text.trim() || value.text.trim().length > 1500) throw new Error("Invalid generated reply");
+      return {answers, mode, text: value.text.trim()};
+    }
     if (conversation === undefined) return {answers, mode};
     if (mode !== "answer" || answers.length || typeof conversation !== "string" ||
         !Object.hasOwn(conversationReplies, conversation)) throw new Error("Invalid conversational reply");

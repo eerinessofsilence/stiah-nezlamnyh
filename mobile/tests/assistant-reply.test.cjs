@@ -18,8 +18,15 @@ test('assistant acknowledges voice checks without swallowing a catalogue questio
   }
   assert.equal(localConversation('Алло, які документи потрібні для УБД?'), undefined);
   assert.equal(localConversation('Ты меня слышишь? Где отремонтировать протез?'), undefined);
-  assert.equal(localConversation('Как у тебя дела вообще?'), 'about');
+});
+
+test('wellbeing questions are separate from questions about an application or service', () => {
+  for (const phrase of ['Привіт, як в тебе справи?', 'И как у тебя дела?',
+    'Як ти себе почуваєш?', 'Как вы себя чувствуете?']) {
+    assert.equal(localConversation(phrase), 'wellbeing');
+  }
   assert.equal(localConversation('Як справи з моєю заявою?'), undefined);
+  assert.equal(localConversation('Привіт, як справи? Де подати заяву на УБД?'), undefined);
 });
 
 test('assistant greets people offline and sends substantive questions through to the guide', () => {

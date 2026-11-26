@@ -1,54 +1,60 @@
-import { type AudioPlayer, type AudioStreamBuffer, createAudioPlayer, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioStream } from 'expo-audio';
+import { type AudioPlayer, type AudioStreamBuffer, createAudioPlayer, IOSOutputFormat, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioStream } from 'expo-audio';
 import { File, Paths } from 'expo-file-system';
 import * as Speech from 'expo-speech';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, AppState } from 'react-native';
+import { Animated, AppState, Platform } from 'react-native';
 
-import { speechThreshold, voiceInputLevel } from './assistant-voice-level';
+import { acceptLiveSpeech, createLiveVoiceGate, type LiveVoiceGate, liveVoiceThreshold, voiceInputLevel } from './assistant-voice-level';
 import { motion, useReducedMotion } from './guide-motion';
+import { storeVoiceEndpoint } from './assistant-online';
 
 const NativeWebSocket = WebSocket as typeof WebSocket & {
   new (url: string, protocols: null, options: { headers: Record<string, string> }): WebSocket;
 };
 
-type Phase = 'idle' | 'permission' | 'recording' | 'stopping' | 'recorded' | 'transcribing' | 'connecting' | 'listening' | 'confirming' | 'thinking' | 'speaking';
+type Phase = 'idle' | 'permission' | 'recording' | 'transcribing' | 'connecting' | 'listening' | 'thinking' | 'speaking';
+const liveSamplesPerMs = 24;
+const liveFrameSamples = 50 * liveSamplesPerMs;
+const liveLeadSamples = 600 * liveSamplesPerMs;
+const recordingOptions = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
+const storeRecordingOptions = {
+  ...recordingOptions,
+  extension: '.wav', sampleRate: 16000, numberOfChannels: 1, bitRate: 256000,
+  ios: { ...recordingOptions.ios, outputFormat: IOSOutputFormat.LINEARPCM },
+};
 type Live = {
   socket: WebSocket;
   capturing: boolean;
   muted: boolean;
   awaiting: boolean;
-  confirmation: string | null;
   lead: Int16Array[];
-  spokenMs: number;
+  voiceGate: LiveVoiceGate;
   turnMs: number;
   quietMs: number;
   timer: ReturnType<typeof setTimeout>;
   keepalive?: ReturnType<typeof setInterval>;
 };
 
-export function useAssistantAudio({ endpoint, token, active, playbackActive = active, piperSpeech = false, onDraft, onQuestion, liveVoice }: {
+export function useAssistantAudio({ endpoint, token, active, playbackActive = active, serverSpeech = false, onDraft, onQuestion }: {
   endpoint?: string;
   token: string;
   active: boolean;
   playbackActive?: boolean;
-  piperSpeech?: boolean;
+  serverSpeech?: boolean;
   onDraft: (text: string) => void;
   onQuestion: (text: string) => Promise<string | undefined>;
-  liveVoice?: string;
 }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState('');
-  const [confirmation, setConfirmation] = useState('');
-  const [liveOpen, setLiveOpen] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [inputLevel] = useState(() => new Animated.Value(0));
   const [replyPulse] = useState(() => new Animated.Value(0));
   const meter = useRef({ updatedAt: 0, level: 0 });
   const reduced = useReducedMotion();
-  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
-  const [deviceVoice, setVoice] = useState<string>();
-  const voice = liveVoice ?? deviceVoice;
+  const storeVoice = Boolean(endpoint && endpoint === storeVoiceEndpoint);
+  const recorder = useAudioRecorder(storeVoice ? storeRecordingOptions : recordingOptions);
+  const [voice, setVoice] = useState<string>();
   const operation = useRef<AbortController | null>(null);
   const live = useRef<Live | null>(null);
   const capturePending = useRef(false);
@@ -57,17 +63,17 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
   const playing = useRef(false);
   const speechStartTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const recordingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const recordState = useRef<'preparing' | 'recording' | 'recorded' | 'finishing' | null>(null);
+  const recordState = useRef<'preparing' | 'recording' | 'finishing' | null>(null);
   const { stream } = useAudioStream({ sampleRate: 24000, channels: 1, encoding: 'int16', onBuffer });
 
   useEffect(() => {
-    if (!playbackActive || liveVoice) return;
+    if (!playbackActive) return;
     let current = true;
     void Speech.getAvailableVoicesAsync().then(voices => {
       if (current) setVoice(voices.find(item => /^uk(?:[-_]|$)/i.test(item.language))?.identifier);
     }).catch(() => {});
     return () => { current = false; };
-  }, [playbackActive, liveVoice]);
+  }, [playbackActive]);
 
   function stopSpeech() {
     speech.current++;
@@ -136,7 +142,12 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
 
     void Speech.stop().then(async () => {
       if (id !== speech.current) return;
-      if (!piperSpeech || !endpoint) return speakOnDevice();
+      // The iOS live stream already owns a play-and-record session with echo cancellation.
+      if (Platform.OS !== 'ios' || !live.current) {
+        await setAudioModeAsync({ playsInSilentMode: true });
+        if (id !== speech.current) return;
+      }
+      if (!serverSpeech || !endpoint) return speakOnDevice();
 
       const controller = new AbortController();
       let file: File | undefined;
@@ -166,12 +177,13 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
           body: JSON.stringify({ text }),
         });
         if (!response.ok) throw new Error();
-        const wav = await response.arrayBuffer();
+        const mime = response.headers.get('Content-Type');
+        if (mime !== 'audio/wav' && mime !== 'audio/mpeg') throw new Error();
+        const extension = mime === 'audio/mpeg' ? 'mp3' : 'wav';
+        const audio = await response.arrayBuffer();
         if (controller.signal.aborted) return;
-        await setAudioModeAsync({ playsInSilentMode: true });
-        if (controller.signal.aborted) return;
-        file = new File(Paths.cache, `assistant-reply-${Date.now()}-${id}.wav`);
-        file.write(new Uint8Array(wav));
+        file = new File(Paths.cache, `assistant-reply-${Date.now()}-${id}.${extension}`);
+        file.write(new Uint8Array(audio));
         player = createAudioPlayer(file.uri, { keepAudioSessionActive: Boolean(live.current), updateInterval: 300 });
         let hasStarted = false;
         subscription = player.addListener('playbackStatusUpdate', status => {
@@ -213,18 +225,15 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
     resetInputLevel();
     setMicMuted(false);
     setPhase('idle');
-    setConfirmation('');
-    setLiveOpen(false);
     setError(nextError);
   }
 
   function cancel() {
     operation.current?.abort();
     clearTimeout(recordingTimer.current);
-    if (recordState.current === 'recording' || recordState.current === 'recorded') void finishRecording('discard');
+    if (recordState.current === 'recording') void finishRecording('discard');
     closeLive();
     if (playing.current) stopSpeech();
-    setLiveOpen(false);
     setPhase('idle');
   }
 
@@ -274,7 +283,7 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
       recorder.record();
       recordState.current = 'recording';
       setPhase('recording');
-      recordingTimer.current = setTimeout(() => void finishRecording('keep'), 60_000);
+      recordingTimer.current = setTimeout(() => void finishRecording('transcribe'), 60_000);
     } catch {
       if (!controller.signal.aborted) setError('Не вдалося почати запис.');
     } finally {
@@ -287,29 +296,23 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
     }
   }
 
-  async function finishRecording(action: 'keep' | 'transcribe' | 'discard') {
+  async function finishRecording(action: 'transcribe' | 'discard') {
     const controller = operation.current;
-    const state = recordState.current;
-    if (!controller || (state !== 'recording' && state !== 'recorded')) return;
+    if (!controller || recordState.current !== 'recording') return;
     recordState.current = 'finishing';
     clearTimeout(recordingTimer.current);
     const upload = action === 'transcribe';
-    if (action !== 'discard') setPhase(upload ? 'transcribing' : 'stopping');
+    if (upload) setPhase('transcribing');
     const timeout = upload ? setTimeout(() => controller.abort('timeout'), 22000) : undefined;
-    let keep = false;
     try {
-      if (state === 'recording') await recorder.stop();
-      if (action === 'discard' || controller.signal.aborted) return;
+      await recorder.stop();
+      if (!upload || controller.signal.aborted) return;
       if (!recorder.uri) throw new Error();
-      if (!upload) {
-        keep = true;
-        return;
-      }
       const bytes = await new File(recorder.uri).arrayBuffer();
       if (controller.signal.aborted) return;
       const response = await fetch(endpoint + '/transcribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'audio/mp4', ...(token && { Authorization: 'Bearer ' + token }) },
+        headers: { 'Content-Type': storeVoice ? 'audio/wav' : 'audio/mp4', ...(token && { Authorization: 'Bearer ' + token }) },
         body: bytes, signal: controller.signal,
       });
       if (!response.ok) throw new Error();
@@ -322,23 +325,18 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
       }
     } finally {
       clearTimeout(timeout);
-      if (state === 'recording') await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
-      if (keep && !controller.signal.aborted) {
-        recordState.current = 'recorded';
-        setPhase('recorded');
-      } else {
-        discardRecording();
-        operation.current = null;
-        recordState.current = null;
-        setPhase('idle');
-      }
+      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      discardRecording();
+      operation.current = null;
+      recordState.current = null;
+      setPhase('idle');
     }
   }
 
   async function startLive() {
     if (!active || !endpoint || operation.current || live.current || capturePending.current) return;
     stopSpeech();
-    if (!voice && !piperSpeech) {
+    if (!voice && !serverSpeech) {
       setError('Для розмови потрібен український голос. Додайте його в налаштуваннях пристрою.');
       return;
     }
@@ -346,14 +344,13 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
     operation.current = controller;
     try {
       if (!await askPermission(controller)) return;
-      setLiveOpen(true);
       setPhase('connecting');
       const socket = new NativeWebSocket(endpoint.replace(/^http/, 'ws') + '/live', null, {
         headers: token ? { Authorization: 'Bearer ' + token } : {},
       });
       const session: Live = {
-        socket, capturing: false, muted: false, awaiting: false, confirmation: null,
-        lead: [], spokenMs: 0, turnMs: 0, quietMs: 0,
+        socket, capturing: false, muted: false, awaiting: false,
+        lead: [], voiceGate: createLiveVoiceGate(), turnMs: 0, quietMs: 0,
         timer: setTimeout(() => closeLive('Не вдалося підключитися. Можна продовжити в чаті.'), 12000),
       };
       live.current = session;
@@ -375,10 +372,6 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
             if (text.length > 500) {
               onDraft(text);
               closeLive('Запитання задовге. Скоротіть його в чаті.');
-            } else if (text && /[0-9]|(?:^|[^\p{L}])(?:не|ні|убд|сзч|влк|екопфо|мсек|тисяч\p{L}*|грив\p{L}*|строк\p{L}*|термін\p{L}*|днів|день|місяц\p{L}*)(?=$|[^\p{L}])/iu.test(text)) {
-              session.confirmation = text;
-              setConfirmation(text);
-              setPhase('confirming');
             } else {
               await answerLive(session, text);
             }
@@ -399,10 +392,7 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
       if (!controller.signal.aborted) setError('Не вдалося почати розмову.');
     } finally {
       operation.current = null;
-      if (!live.current) {
-        setLiveOpen(false);
-        setPhase('idle');
-      }
+      if (!live.current) setPhase('idle');
     }
   }
 
@@ -419,26 +409,11 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
     if (!playing.current) setPhase('listening');
   }
 
-  function confirmTranscript(edit: boolean) {
-    if (phase !== 'confirming') return;
-    const session = live.current;
-    if (!session?.confirmation) return;
-    const text = session.confirmation;
-    session.confirmation = null;
-    setConfirmation('');
-    if (edit) {
-      onDraft(text);
-      closeLive();
-    } else {
-      void answerLive(session, text).catch(() => closeLive('Не вдалося отримати відповідь. Можна продовжити в чаті.'));
-    }
-  }
-
   function commit() {
     const session = live.current;
     if (!session || session.muted || session.awaiting || session.turnMs < 100 || session.socket.readyState !== WebSocket.OPEN) return;
     session.awaiting = true;
-    session.turnMs = session.quietMs = session.spokenMs = 0;
+    session.turnMs = session.quietMs = session.voiceGate.speechMs = 0;
     session.lead = [];
     session.socket.send('commit');
     resetInputLevel();
@@ -470,7 +445,7 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
         await startCapture(session);
       }
       if (live.current !== session) return;
-      session.turnMs = session.quietMs = session.spokenMs = 0;
+      session.turnMs = session.quietMs = session.voiceGate.speechMs = 0;
       session.lead = [];
       setMicMuted(session.muted);
     } catch {
@@ -483,11 +458,11 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
     inputLevel.setValue(0);
   }
 
-  function showInput(rms: number) {
+  function showInput(rms: number, threshold: number) {
     if (reduced) return;
     const now = performance.now();
     if (now - meter.current.updatedAt < 50) return;
-    const level = voiceInputLevel(rms);
+    const level = voiceInputLevel(rms, threshold);
     if (Math.abs(level - meter.current.level) < 0.025 && !(level === 0 && meter.current.level > 0)) return;
     const duration = level > meter.current.level ? 75 : 145;
     meter.current = { updatedAt: now, level };
@@ -502,22 +477,28 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
     const samples = sampleRate === 24000 && channels === 1 ? input :
       Int16Array.from({ length: Math.floor(input.length * 24000 / channels / sampleRate) }, (_, index) =>
         input[Math.floor(index * sampleRate / 24000) * channels]);
-    if (!samples.length) return;
-    const ms = samples.length / 24;
+    // Measure in short windows even when the native recorder returns a larger buffer.
+    for (let start = 0; start < samples.length && !session.awaiting; start += liveFrameSamples) {
+      handleLiveFrame(session, samples.subarray(start, start + liveFrameSamples));
+    }
+  }
+
+  function handleLiveFrame(session: Live, samples: Int16Array) {
+    const ms = samples.length / liveSamplesPerMs;
     const rms = Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length) / 32768;
-    // shortcut: fixed speech thresholds for Dev devices, calibrate against real calls before wider rollout.
-    const speaking = rms > (playing.current ? 0.055 : speechThreshold);
-    if (!playing.current) showInput(rms);
+    const stage = session.turnMs ? 'continuing' : playing.current ? 'interrupting' : 'listening';
+    const speaking = acceptLiveSpeech(session.voiceGate, rms, ms, stage);
+    if (!playing.current) showInput(rms, liveVoiceThreshold(session.voiceGate, stage));
     if (!session.turnMs) {
       session.lead.push(samples);
-      if (session.lead.length > 4) session.lead.shift();
-      session.spokenMs = speaking ? session.spokenMs + ms : 0;
-      if (session.spokenMs < (playing.current ? 240 : 100)) return;
+      let leadSamples = session.lead.reduce((sum, frame) => sum + frame.length, 0);
+      while (leadSamples > liveLeadSamples) leadSamples -= session.lead.shift()!.length;
+      if (!speaking) return;
       if (playing.current) stopSpeech();
       for (const frame of session.lead) {
         session.socket.send(frame);
-        session.turnMs += frame.length / 24;
       }
+      session.turnMs = leadSamples / liveSamplesPerMs;
       session.lead = [];
       return;
     }
@@ -528,7 +509,7 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
   }
 
   return {
-    phase, error, voice, liveOpen, micMuted, speaking, inputLevel, replyPulse, confirmation, confirmTranscript, recorder,
+    phase, error, voice, micMuted, speaking, inputLevel, replyPulse, recorder,
     startRecording, finishRecording, startLive, cancel, toggleMic, speak, stopSpeech,
   };
 }

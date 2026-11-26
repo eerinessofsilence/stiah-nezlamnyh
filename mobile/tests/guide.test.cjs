@@ -93,6 +93,13 @@ test('assistant handles overviews, follow-ups and distinct parts of a request of
   });
   assert.throws(() => parseCatalogReply(services, { answers: [training], mode: 'clarify' }));
   assert.throws(() => parseCatalogReply(services, { answers: [{ ...sport, section: 'unknown' }], mode: 'answer' }));
+  const text = 'Зі мною все гаразд, дякую!';
+  assert.deepEqual(parseCatalogReply(services, { answers: [], mode: 'answer', text: ` ${text} ` }), {
+    answers: [], mode: 'answer', text
+  });
+  assert.throws(() => parseCatalogReply(services, { answers: [training], mode: 'answer', text }));
+  assert.throws(() => parseCatalogReply(services, { answers: [], mode: 'answer', conversation: 'greeting', text }));
+  assert.throws(() => parseCatalogReply(services, { answers: [], mode: 'answer', text: 'Я'.repeat(1501) }));
 });
 
 test('offline answers distinguish background, specific catalogue topics and requests for guarantees', () => {

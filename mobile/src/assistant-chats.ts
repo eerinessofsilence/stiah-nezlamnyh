@@ -19,6 +19,11 @@ export function newAssistantChat(id: number): AssistantChat {
   return { id, title: '', pinned: false, turns: [], question: '', voiceDraft: false };
 }
 
+export function appendVoiceDraft(chat: AssistantChat, transcript: string): AssistantChat {
+  const separator = chat.question && !/\s$/u.test(chat.question) ? ' ' : '';
+  return { ...chat, question: chat.question + separator + transcript, voiceDraft: true };
+}
+
 export function hasChatContent(chat: AssistantChat) {
   return chat.turns.length > 0 || chat.question.trim().length > 0 || chat.title !== '' || chat.pinned;
 }

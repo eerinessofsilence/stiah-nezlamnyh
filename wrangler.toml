@@ -11,6 +11,8 @@ run_worker_first = ["/api/*"]
 [vars]
 ASSISTANT_ENABLED = "true"
 ASSISTANT_DAILY_LIMIT = "500"
+ASSISTANT_VOICE_ENABLED = "true"
+ASSISTANT_VOICE_DAILY_MINUTES = "150"
 
 [observability]
 enabled = false

@@ -44,7 +44,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": false,
+          "microphonePermission": "Характерник використовує мікрофон для розпізнавання голосових запитань і живої розмови.",
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": false,
           "enableBackgroundRecording": false

@@ -6,6 +6,9 @@ const {WebSocket} = ws;
 const {revision} = require("../mobile/src/data/catalog.json");
 
 test("Dev text, recording and live share auth and reject unsupported provider results", {timeout: 15000}, async t => {
+  const existingElevenKey = process.env.ELEVENLABS_API_KEY;
+  delete process.env.ELEVENLABS_API_KEY;
+  t.after(() => { if (existingElevenKey !== undefined) process.env.ELEVENLABS_API_KEY = existingElevenKey; });
   process.env.OPENAI_API_KEY = "test-key";
   process.env.ASSISTANT_DEV_TOKEN = "test-token";
   const piperUrl = "http://127.0.0.1:5072/synthesize";
@@ -17,6 +20,11 @@ test("Dev text, recording and live share auth and reject unsupported provider re
   wav.write("WAVE", 8);
   let speechUnavailable = false;
   let selection = "empty";
+  const generatedAnswers = new Map([
+    ["А, привет, как дела?", "Усе гаразд, дякую! Як ваші справи?"],
+    ["Ну скажи мне, как у тебя дела просто?", "Усе добре, я на зв’язку."],
+    ["Почему небо синее?", "Молекули повітря сильніше розсіюють синє світло, ніж червоне."],
+  ]);
   let upstream;
   class TestProvider extends EventEmitter {
     static OPEN = WebSocket.OPEN;
@@ -28,6 +36,13 @@ test("Dev text, recording and live share auth and reject unsupported provider re
       assert.match(url, /intent=transcription$/);
       upstream = this;
       queueMicrotask(() => this.emit("open"));
+      this.readyState = WebSocket.CONNECTING;
+    }
+    addEventListener(type, listener) {
+      this.on(type, data => {
+        if (type === "open") this.readyState = WebSocket.OPEN;
+        listener({data});
+      });
     }
     send(message) {
       const event = JSON.parse(message);
@@ -65,7 +80,23 @@ test("Dev text, recording and live share auth and reject unsupported provider re
     const input = JSON.parse(request.input);
     assert(request.model === "gpt-6-luna" && request.store === false);
     const result = data => Response.json({output: [{type: "message", content: [{type: "output_text", text: JSON.stringify(data)}]}]});
+    if (request.text.format.name === "ukrainian_reply") {
+      assert.deepEqual(input, {text: "Спасибо, у меня всё хорошо!"});
+      return result({text: selection === "untranslated" ? "Спасибо, у меня всё хорошо!" : "Дякую, у мене все добре!"});
+    }
     if (request.text.format.name === "guide_lookup") {
+      const generatesText = Boolean(request.text.format.schema.properties.text);
+      if (generatesText && generatedAnswers.has(input.question)) {
+        assert.deepEqual(request.text.format.schema.properties.intent.enum, ["guide", "general"]);
+        assert(request.max_output_tokens > 180);
+        assert.match(request.instructions, /завжди пиши українською, незалежно від мови запитання/);
+        assert.match(request.instructions, /Починай з прямої відповіді або конкретного першого кроку/);
+        assert.match(request.instructions, /без гумору, метафор та бойових образів/);
+        return result({intent: "general", materials: [], text: generatedAnswers.get(input.question)});
+      }
+      if (generatesText && ["translate", "untranslated"].includes(selection)) {
+        return result({intent: "general", materials: [], text: "Спасибо, у меня всё хорошо!"});
+      }
       const entries = [...request.instructions.matchAll(/^\s*(\d+)\. ([^\n]+)$/gm)];
       assert.equal(entries.length, require("../catalog.js").services.reduce((n, service) => n + 1 + service.sections.length, 0));
       const titles = selection === "sport-sources" ? ["Ветеранський спорт", "Чи можна отримати 1 500 грн у Дії"] :
@@ -73,11 +104,13 @@ test("Dev text, recording and live share auth and reject unsupported provider re
         selection === "context-overview" ? ["Ветеранський спорт"] :
         ["evidence", "invalid-evidence"].includes(selection) ? ["З чого почати після втрати кінцівки"] :
         ["Як отримати УБД", "Де знайти адаптивні тренування"];
-      if (selection === "greeting" || selection === "bad-conversation") {
-        return result({intent: selection === "greeting" ? "greeting" : "unapproved message", materials: []});
+      if (["greeting", "wellbeing", "unclear", "bad-conversation"].includes(selection)) {
+        assert(request.text.format.schema.properties.intent.enum.includes("wellbeing"));
+        return result({intent: selection === "bad-conversation" ? "unapproved message" : selection, materials: []});
       }
       return result({intent: "guide", materials: selection === "invalid-lookup" ? [9999] :
-        titles.map(title => Number(entries.find(entry => entry[2] === title)?.[1])).filter(Boolean)});
+        titles.map(title => Number(entries.find(entry => entry[2] === title)?.[1])).filter(Boolean),
+        ...(generatesText && {text: selection === "unverified-guide" ? "Непідтверджений текст" : ""})});
     }
     assert.equal(request.text.format.name, "catalogue_answers");
     assert(input.options.every(entry => entry.paragraphs.length > 0));
@@ -123,6 +156,30 @@ test("Dev text, recording and live share auth and reject unsupported provider re
   assert.deepEqual(await (await ask(greeting)).json(), {answers: [], mode: "answer", conversation: "greeting"});
   selection = "bad-conversation";
   assert.equal((await ask(greeting)).status, 502);
+  for (const [intent, legacy] of [["wellbeing", "available"], ["unclear", "about"]]) {
+    selection = intent;
+    const message = {question: intent === "wellbeing" ? "Як ти себе почуваєш?" : "per questo", revision};
+    assert.deepEqual(await (await ask({...message, conversationVersion: 2})).json(), {answers: [], mode: "answer", conversation: intent});
+    assert.deepEqual(await (await ask(message)).json(), {answers: [], mode: "answer", conversation: legacy});
+  }
+  selection = "valid";
+  for (const [message, text] of generatedAnswers) {
+    assert.deepEqual(await (await ask({revision, question: message, conversationVersion: 3})).json(), {
+      answers: [], mode: "answer", text
+    });
+  }
+  const russian = {revision, question: "Как дела?", conversationVersion: 3};
+  selection = "translate";
+  assert.deepEqual(await (await ask(russian)).json(), {answers: [], mode: "answer", text: "Дякую, у мене все добре!"});
+  selection = "untranslated";
+  assert.equal((await ask(russian)).status, 502);
+  selection = "valid";
+  const guideQuestion = {...question, question: "Привіт, як справи? Які документи потрібні для УБД?", conversationVersion: 3};
+  assert.deepEqual(await (await ask(guideQuestion)).json(), {
+    answers: [{route: "status", section: "ubd"}], mode: "answer"
+  });
+  selection = "unverified-guide";
+  assert.equal((await ask(guideQuestion)).status, 502);
   selection = "empty-partial";
   assert.deepEqual(await (await ask(question)).json(), {answers: [], mode: "answer"});
   selection = "valid";
@@ -185,4 +242,40 @@ test("Dev text, recording and live share auth and reject unsupported provider re
   client.close();
   await shutdown;
   assert.equal(upstream.readyState, WebSocket.CLOSED);
+});
+
+test("Dev sends only the Ukrainian reply to ElevenLabs and returns validated MP3 audio", async t => {
+  const serverPath = require.resolve("../server.cjs");
+  const env = {ELEVENLABS_API_KEY: "test-eleven-key", ELEVENLABS_VOICE_ID: "test-voice", ASSISTANT_DEV_TOKEN: "test-token"};
+  const previous = Object.fromEntries(Object.keys(env).map(key => [key, process.env[key]]));
+  Object.assign(process.env, env);
+  delete require.cache[serverPath];
+  const server = require(serverPath);
+  for (const [key, value] of Object.entries(previous)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  t.after(() => { server.close(); delete require.cache[serverPath]; });
+  const realFetch = globalThis.fetch;
+  const text = "Вітаю! Я Характерник.";
+  const mp3 = Buffer.alloc(128);
+  mp3.write("ID3");
+  let invalid = false;
+  t.mock.method(globalThis, "fetch", (url, options) => {
+    assert.equal(url, "https://api.elevenlabs.io/v1/text-to-speech/test-voice?output_format=mp3_44100_128");
+    assert.equal(options.headers["xi-api-key"], "test-eleven-key");
+    assert.deepEqual(JSON.parse(options.body), {text, model_id: "eleven_flash_v2_5", language_code: "uk"});
+    return new Response(invalid ? Buffer.alloc(128) : mp3);
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}/api/assistant`;
+  const headers = {Authorization: "Bearer test-token", "Content-Type": "application/json"};
+  const requestSpeech = () => realFetch(base + "/speech", {method: "POST", headers, body: JSON.stringify({text})});
+  assert.equal((await (await realFetch(base, {headers})).json()).speech, true);
+  const response = await requestSpeech();
+  assert.equal(response.headers.get("content-type"), "audio/mpeg");
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), mp3);
+  invalid = true;
+  assert.equal((await requestSpeech()).status, 502);
 });

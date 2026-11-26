@@ -50,8 +50,8 @@ test("Store assistant sends only valid text requests to the shared model and res
   }), env);
   const prompt = {question: "Кінцівку не вдалося зберегти. З чого почати?", revision};
   assert.equal(await (await worker.fetch(new Request(root + "/privacy.html"), env)).text(), "/privacy.html");
-  assert.equal((await worker.fetch(new Request(endpoint + "/transcribe", {method: "POST"}), env)).status, 404);
-  assert.equal((await worker.fetch(new Request(endpoint), env)).status, 405);
+  assert.equal((await worker.fetch(new Request(endpoint + "/transcribe", {method: "POST"}), env)).status, 503);
+  assert.deepEqual(await (await worker.fetch(new Request(endpoint), env)).json(), {enabled: true, voice: false, revision});
   env.ASSISTANT_ENABLED = "false";
   assert.equal((await ask(prompt)).status, 503);
   env.ASSISTANT_ENABLED = "true";
@@ -70,4 +70,63 @@ test("Store assistant sends only valid text requests to the shared model and res
   rateAllowed = false;
   assert.equal((await ask({...prompt, question: "Що таке УБД?"})).status, 429);
   assert.equal(records.get("daily").count, 1);
+});
+
+test("Store voice validates uploads and shares a separate daily limit with live sessions", async t => {
+  const {default: worker, AssistantQuota} = await import("../worker.mjs");
+  const records = new Map();
+  const env = {
+    ASSISTANT_ENABLED: "true", ASSISTANT_VOICE_ENABLED: "true",
+    ASSISTANT_DAILY_LIMIT: "1", ASSISTANT_VOICE_DAILY_MINUTES: "6", OPENAI_API_KEY: "test-key",
+    ASSISTANT_RATE: {limit: async () => ({success: true})},
+  };
+  const quota = new AssistantQuota({storage: {
+    kv: {get: key => records.get(key), put: (key, value) => records.set(key, value)},
+    transactionSync: work => work(),
+  }}, env);
+  env.ASSISTANT_QUOTA = {getByName: () => ({fetch: (url, options) => quota.fetch(new Request(url, options))})};
+  let upstreamCalls = 0;
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    upstreamCalls++;
+    assert.equal(options.headers.Authorization, "Bearer test-key");
+    if (url.endsWith("/audio/transcriptions")) {
+      assert.equal(options.body.get("model"), "gpt-transcribe");
+      assert.equal(options.body.get("file").type, "audio/wav");
+      assert.equal(options.body.get("file").size, 44 + 16000 * 2 * 60);
+      return Response.json({text: " Добрий день "});
+    }
+    assert.match(url, /intent=transcription$/);
+    assert.equal(options.headers.Upgrade, "websocket");
+    return new Response(null, {status: 502});
+  });
+  const endpoint = "https://test.example/api/assistant";
+  const record = (type, body) => worker.fetch(new Request(endpoint + "/transcribe", {
+    method: "POST", headers: {"Content-Type": type}, body,
+  }), env);
+  const live = headers => worker.fetch(new Request(endpoint + "/live", {headers}), env);
+  const wav = Buffer.alloc(44 + 16000 * 2 * 61);
+  wav.write("RIFF");
+  wav.writeUInt32LE(wav.length - 8, 4);
+  wav.write("WAVEfmt ", 8);
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20);
+  wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(16000, 24);
+  wav.writeUInt16LE(16, 34);
+  wav.write("data", 36);
+  wav.writeUInt32LE(wav.length - 44, 40);
+  assert.deepEqual(await (await worker.fetch(new Request(endpoint), env)).json(), {enabled: true, voice: true, revision});
+  assert.equal((await record("text/plain", "not audio")).status, 415);
+  assert.equal((await record("audio/wav", null)).status, 400);
+  assert.equal((await record("audio/wav", new Uint8Array(100))).status, 400);
+  assert.equal((await record("audio/wav", new Uint8Array(2 * 1024 * 1024 + 1))).status, 413);
+  assert.equal((await live()).status, 426);
+  assert.equal(upstreamCalls, 0);
+  assert.deepEqual(await (await record("audio/wav", wav)).json(), {text: "Добрий день"});
+  assert.equal((await live({Upgrade: "websocket"})).status, 502);
+  assert.equal((await live({Upgrade: "websocket"})).status, 429);
+  assert.equal((await record("audio/wav", wav)).status, 429);
+  assert.equal(upstreamCalls, 2);
+  assert.equal(records.get("voice-daily").count, 6);
+  assert.equal(records.has("daily"), false);
 });

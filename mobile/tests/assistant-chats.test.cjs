@@ -1,6 +1,16 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { assistantChatTitle, chatMenuPosition, chatTitleLimit, listAssistantChats, newAssistantChat, removeAssistantChat } = require('../src/assistant-chats.ts');
+const { appendVoiceDraft, assistantChatTitle, chatMenuPosition, chatTitleLimit, listAssistantChats, newAssistantChat, removeAssistantChat } = require('../src/assistant-chats.ts');
+
+test('another recording appends to a typed or dictated draft without losing its text', () => {
+  const blank = newAssistantChat(1);
+  assert.deepEqual(appendVoiceDraft(blank, 'Перша фраза.'), { ...blank, question: 'Перша фраза.', voiceDraft: true });
+  const typed = { ...blank, question: 'Написане запитання.' };
+  const draft = appendVoiceDraft(typed, 'Додане уточнення.');
+  assert.equal(draft.question, 'Написане запитання. Додане уточнення.');
+  assert.equal(appendVoiceDraft(draft, 'Ще одне.').question, 'Написане запитання. Додане уточнення. Ще одне.');
+  assert.equal(appendVoiceDraft({ ...typed, question: 'Абзац.\n' }, 'Наступний.').question, 'Абзац.\nНаступний.');
+});
 
 test('history keeps drafts and named chats, with pinned chats first', () => {
   const blank = newAssistantChat(4);

@@ -290,16 +290,22 @@ export function GuidePressable({ style, onFocus, onBlur, onPressIn, onPressOut, 
   );
 }
 
-export function GuideIconButton({ icon, label, onPress, ref, disabled, iconSize = 20, surface = 'surface' }: {
+export function GuideIconButton({ icon, alternateIcon, label, onPress, ref, disabled, iconSize = 20, size = 44, surface = 'surface' }: {
   icon: GuideIconName; label: string; onPress: () => void; ref?: ComponentProps<typeof GuidePressable>['ref']; disabled?: boolean; iconSize?: number;
+  alternateIcon?: { name: GuideIconName; active: boolean };
+  size?: number;
   surface?: 'surface' | 'background';
 }) {
   const colors = useGuideColors();
   return (
     <GuidePressable ref={ref} accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
       disabled={disabled} accessibilityState={{ disabled }}
-      style={[styles.iconButton, { backgroundColor: colors[surface], borderColor: colors.iconButtonBorder, opacity: disabled ? 0.5 : 1 }]}>
-      <GuideIcon name={icon} size={iconSize} />
+      style={[styles.iconButton, {
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: colors[surface], borderColor: colors.iconButtonBorder, opacity: disabled ? 0.5 : 1,
+      }]}>
+      {alternateIcon ? <GuideStateIcon name={icon} selectedName={alternateIcon.name} selected={alternateIcon.active}
+        size={iconSize} color={colors.accent} /> : <GuideIcon name={icon} size={iconSize} />}
     </GuidePressable>
   );
 }
@@ -451,7 +457,7 @@ type ButtonAppearance = {
 
 export function GuideButton({ label, variant = 'secondary', icon, tone = 'foreground', fullWidth = false, row = false, style, ...props }:
   ButtonAppearance & Pick<ComponentProps<typeof Pressable>,
-  'ref' | 'onPress' | 'onLongPress' | 'accessibilityRole' | 'accessibilityLabel' | 'accessibilityHint' | 'accessibilityState' | 'disabled'> & {
+  'ref' | 'onPress' | 'onLongPress' | 'onLayout' | 'accessibilityRole' | 'accessibilityLabel' | 'accessibilityHint' | 'accessibilityState' | 'disabled'> & {
     style?: ComponentProps<typeof View>['style'];
   }) {
   const colors = useGuideColors();
@@ -581,7 +587,7 @@ export function ExternalLink({ url, variant, compact = false, copyLabel, inlineC
 }
 
 const styles = StyleSheet.create({
-  iconButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  iconButton: { borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   screen: { gap: 12, paddingHorizontal: guideContentInset, paddingTop: 12, paddingBottom: 16, width: '100%', maxWidth: guideContentMaxWidth, alignSelf: 'center' },
   edgeScroll: { flex: 1 },
   statusEdge: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1 },

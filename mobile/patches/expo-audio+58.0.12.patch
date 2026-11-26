@@ -1,7 +1,15 @@
 diff --git a/node_modules/expo-audio/ios/AudioStream.swift b/node_modules/expo-audio/ios/AudioStream.swift
 --- a/node_modules/expo-audio/ios/AudioStream.swift
 +++ b/node_modules/expo-audio/ios/AudioStream.swift
-@@ -39,12 +39,13 @@
+@@ -6,6 +6,7 @@
+
+ class AudioStream: SharedObject {
+   let id = UUID().uuidString
++  var onStop: (() -> Void)?
+
+   private let requestedSampleRate: Double
+   private let requestedChannels: Int
+@@ -39,12 +40,13 @@
          try? session.setActive(false)
        }
      }
@@ -16,6 +24,49 @@ diff --git a/node_modules/expo-audio/ios/AudioStream.swift b/node_modules/expo-a
      let hardwareFormat = inputNode.outputFormat(forBus: 0)
  
      let targetSampleRate = requestedSampleRate
+@@ -124,6 +126,7 @@
+       self.fileWriter = nil
+       self.fileWriterError = nil
+     }
++    onStop?()
+   }
+
+   func startFileRecording(url: URL, format: AudioStreamFileFormat) throws -> String {
+diff --git a/node_modules/expo-audio/ios/AudioModule.swift b/node_modules/expo-audio/ios/AudioModule.swift
+--- a/node_modules/expo-audio/ios/AudioModule.swift
++++ b/node_modules/expo-audio/ios/AudioModule.swift
+@@ -557,7 +557,12 @@
+
+     Class(AudioStream.self) {
+       Constructor { (options: AudioStreamOptions) -> AudioStream in
+-        return AudioStream(options: options)
++        let stream = AudioStream(options: options)
++        let streamId = stream.id
++        stream.onStop = { [weak self] in
++          self?.unregisterAudioSessionActivityKeeper(streamId)
++        }
++        return stream
+       }
+
+       Property("id") { (stream: AudioStream) in
+@@ -582,12 +587,15 @@
+           !sessionIsActive && audioSessionActivityKeepers.isEmpty
+         }
+         try stream.start(deactivateSessionOnFailure: deactivateSessionOnFailure)
+-        self.recordSessionActive(true)
++        self.sessionQueue.async {
++          self.sessionIsActive = true
++          // Finishing a reply must not deactivate the microphone's session.
++          _ = self.registerAudioSessionActivityKeeper(stream.id)
++        }
+       }
+
+       Function("stop") { (stream: AudioStream) in
+         stream.stop()
+-        self.deactivateSession()
+       }
+
+       AsyncFunction("startFileRecordingAsync") { (stream: AudioStream, options: AudioStreamFileRecordingOptions?) throws -> AudioStreamFileRecordingStartResult in
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioStream.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioStream.kt
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioStream.kt
 +++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioStream.kt

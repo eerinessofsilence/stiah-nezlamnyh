@@ -8,10 +8,11 @@ import { readProfile, type GuideProfile } from './guide-profile';
 const profileKey = 'nezlamnyi-guide-profile-v1';
 const legacyStatusKey = 'nezlamnyi-user-status-v1';
 const assistantConsentKey = 'nezlamnyi-assistant-consent-v1';
+const voiceConsentKey = 'nezlamnyi-assistant-voice-consent-v1';
 
-function loadAssistantConsent() {
+function loadConsent(key: string) {
   try {
-    const value = Storage.getItemSync(assistantConsentKey);
+    const value = Storage.getItemSync(key);
     return value === 'allowed' ? true : value === 'declined' ? false : null;
   } catch {
     return null;
@@ -34,12 +35,15 @@ const GuideState = createContext<{
   offline: boolean;
   assistantConsent: boolean | null;
   saveAssistantConsent: (allowed: boolean) => boolean;
+  voiceConsent: boolean;
+  saveVoiceConsent: (allowed: boolean) => boolean;
 } | null>(null);
 
 export function GuideProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState(loadProfile);
   const [query, setQuery] = useState('');
-  const [assistantConsent, setAssistantConsent] = useState(loadAssistantConsent);
+  const [assistantConsent, setAssistantConsent] = useState(() => loadConsent(assistantConsentKey));
+  const [voiceConsent, setVoiceConsent] = useState(() => loadConsent(voiceConsentKey) === true);
   const network = Network.useNetworkState();
 
   function saveAssistantConsent(allowed: boolean) {
@@ -50,6 +54,19 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       return true;
     } catch {
       Alert.alert(allowed ? 'Онлайн-допомогу не ввімкнено' : 'Онлайн-допомогу вимкнено в цьому сеансі',
+        'Не вдалося зберегти налаштування. Спробуйте ще раз.');
+      return false;
+    }
+  }
+
+  function saveVoiceConsent(allowed: boolean) {
+    if (!allowed) setVoiceConsent(false);
+    try {
+      Storage.setItemSync(voiceConsentKey, allowed ? 'allowed' : 'declined');
+      if (allowed) setVoiceConsent(true);
+      return true;
+    } catch {
+      Alert.alert(allowed ? 'Голосову допомогу не ввімкнено' : 'Голосову допомогу вимкнено в цьому сеансі',
         'Не вдалося зберегти налаштування. Спробуйте ще раз.');
       return false;
     }
@@ -70,6 +87,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   return <GuideState.Provider value={{
     profile, saveProfile,
     assistantConsent, saveAssistantConsent,
+    voiceConsent, saveVoiceConsent,
     query, setQuery, offline: network.isConnected === false || network.isInternetReachable === false,
   }}>{children}</GuideState.Provider>;
 }

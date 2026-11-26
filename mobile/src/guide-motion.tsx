@@ -46,7 +46,7 @@ export function useReducedMotion() {
   return useMotionPreference() !== false;
 }
 
-export function useGuideTransition(target: number) {
+export function useGuideTransition(target: number, duration = motion.feedback) {
   const reduced = useReducedMotion();
   const [value] = useState(() => new Animated.Value(target));
   const previous = useRef(target);
@@ -59,13 +59,32 @@ export function useGuideTransition(target: number) {
       return;
     }
     const animation = Animated.timing(value, {
-      toValue: target, duration: motion.feedback, easing: motion.easeOut, useNativeDriver: true, isInteraction: false,
+      toValue: target, duration, easing: motion.easeOut, useNativeDriver: true, isInteraction: false,
     });
     animation.start();
     return () => animation.stop();
-  }, [reduced, target, value]);
+  }, [duration, reduced, target, value]);
 
   return value;
+}
+
+export function useGuideEntrance(visible = true) {
+  const reduced = useReducedMotion();
+  const [opacity] = useState(() => new Animated.Value(visible && reduced ? 1 : 0));
+
+  useLayoutEffect(() => {
+    if (!visible || reduced) {
+      opacity.setValue(visible ? 1 : 0);
+      return;
+    }
+    const animation = Animated.timing(opacity, {
+      toValue: 1, duration: motion.appear, easing: motion.easeOut, useNativeDriver: true, isInteraction: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [opacity, reduced, visible]);
+
+  return opacity;
 }
 
 export function focusGuideControl(control: HostInstance | null) {

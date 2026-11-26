@@ -24,6 +24,9 @@ const light = {
   feature: '#20280f',
   featurePressed: '#343e20',
   onFeature: '#fbfbf6',
+  voiceOrbMutedBase: '#414141',
+  voiceOrbMutedShade: '#626262',
+  voiceOrbMutedLight: '#b9b9b9',
 };
 
 const dark: typeof light = {
@@ -48,6 +51,9 @@ const dark: typeof light = {
   feature: '#11180d',
   featurePressed: '#25331c',
   onFeature: '#f0f2e8',
+  voiceOrbMutedBase: '#262626',
+  voiceOrbMutedShade: '#424242',
+  voiceOrbMutedLight: '#a4a4a4',
 };
 
 const storageKey = 'nezlamnyi-color-scheme';

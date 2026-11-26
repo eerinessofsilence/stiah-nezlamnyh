@@ -1,14 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router/react-navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, BackHandler, type HostInstance, Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Animated, BackHandler, type HostInstance, Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAssistantChats } from '../assistant-chat-state';
 import { assistantChatTitle, type ChatMenuBounds, chatMenuPosition, chatTitleLimit, listAssistantChats } from '../assistant-chats';
 import { GuideInputFrame, GuideTextInput } from '../form-controls';
 import { GuideBackButton, GuideButton, guideContentInset, guideContentMaxWidth, GuideIcon, GuideIconButton, GuidePanel, GuidePressable, GuideScreen, GuideText } from '../guide';
-import { focusGuideControl } from '../guide-motion';
+import { focusGuideControl, useGuideEntrance } from '../guide-motion';
 import { useGuideColors } from '../theme';
 
 export default function AssistantChatsScreen() {
@@ -155,6 +155,7 @@ function ChatActionsPopover({ anchor, bounds, actions, onClose }: {
   const firstAction = useRef<HostInstance>(null);
   const ready = height > 0;
   const position = chatMenuPosition(anchor, bounds, height);
+  const opacity = useGuideEntrance(ready);
 
   useEffect(() => {
     if (ready) focusGuideControl(firstAction.current);
@@ -163,8 +164,9 @@ function ChatActionsPopover({ anchor, bounds, actions, onClose }: {
   return (
     <View style={StyleSheet.absoluteFill} accessibilityViewIsModal onAccessibilityEscape={onClose}>
       <Pressable accessible={false} focusable={false} style={StyleSheet.absoluteFill} onPress={onClose} />
-      <View onLayout={event => setHeight(event.nativeEvent.layout.height)}
-        style={[styles.menu, position, { opacity: ready ? 1 : 0, backgroundColor: colors.surface, borderColor: colors.borderStrong }]}>
+      <Animated.View onLayout={event => setHeight(event.nativeEvent.layout.height)} pointerEvents={ready ? 'auto' : 'none'}
+        accessibilityElementsHidden={!ready} importantForAccessibility={ready ? 'auto' : 'no-hide-descendants'}
+        style={[styles.menu, position, { opacity, backgroundColor: colors.surface, borderColor: colors.borderStrong }]}>
         <ScrollView style={{ maxHeight: Math.max(0, position.maxHeight - 2) }} keyboardShouldPersistTaps="handled">
           {actions.map(({ label, onPress }, index) => <GuidePressable key={label} ref={index === 0 ? firstAction : undefined}
             accessibilityRole="menuitem" accessibilityLabel={label} onPress={onPress}
@@ -172,7 +174,7 @@ function ChatActionsPopover({ anchor, bounds, actions, onClose }: {
             <GuideText type="item">{label}</GuideText>
           </GuidePressable>)}
         </ScrollView>
-      </View>
+      </Animated.View>
     </View>
   );
 }
