@@ -87,7 +87,7 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
     if (live.current) setPhase('listening');
   }
 
-  function speak(text: string) {
+  function speak(text: string, useServerSpeech = serverSpeech) {
     const id = ++speech.current;
     releasePlayback.current?.();
     releasePlayback.current = undefined;
@@ -147,7 +147,7 @@ export function useAssistantAudio({ endpoint, token, active, playbackActive = ac
         await setAudioModeAsync({ playsInSilentMode: true });
         if (id !== speech.current) return;
       }
-      if (!serverSpeech || !endpoint) return speakOnDevice();
+      if (!useServerSpeech || !endpoint) return speakOnDevice();
 
       const controller = new AbortController();
       let file: File | undefined;

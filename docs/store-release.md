@@ -16,8 +16,8 @@
 | Ідентифікатор iOS і пакет Android | `app.stiahnezlamnykh.guide` |
 | SKU App Store Connect | `STIAH-GUIDE-IOS` |
 | Apple ID | [6837277648](https://appstoreconnect.apple.com/apps/6837277648/distribution/ios/version/inflight) |
-| Цільова версія iOS | `1.0.0`, збірка `10` |
-| Цільова версія Android | `1.0.0`, `versionCode` `7` |
+| Цільова версія iOS | `1.1.0`, збірка `11` |
+| Цільова версія Android | `1.1.0`, `versionCode` `8` |
 | Ціна | Безкоштовно |
 | Категорія | Reference в App Store, Books & Reference у Google Play |
 | Доступність першого випуску в App Store | Лише Україна |
@@ -32,7 +32,7 @@
 
 У картці Apple збережено контакт і нотатки для App Review. Вхід у застосунок не потрібен. Декларація **Data Not Collected** опублікована. Для збірки вказано **App Uses Non-Exempt Encryption: No**. Після схвалення власник випускає версію вручну. Доступність на Mac з Apple Silicon та Apple Vision Pro вимкнено.
 
-Для наступного завантаження в TestFlight у коді задано `1.0.0`, збірку `10`. За останньою звіркою, збірка `0.4.0 (4)` доступна в TestFlight і прикріплена до картки App Store `0.4.0`.
+Для наступного завантаження в TestFlight у коді задано `1.1.0`, збірку `11`. За останньою звіркою, збірка `0.4.0 (4)` доступна в TestFlight і прикріплена до картки App Store `0.4.0`.
 
 У **App Compliance** збережено статус DSA **non-trader**. Запуск лише в Україні. Пункти **Security Assessment** і **AI Generated or Synthetic Content** стосуються материкового Китаю, який не вибрано в доступності.
 
@@ -54,7 +54,7 @@
 Перед збереженням нотаток підставте посилання на запис, який відкривається без входу. Використовуйте збірку, вибрану для повторного подання.
 
 ```text
-Guideline 2.1 — Review information for iOS 1.0.0 (build 10)
+Guideline 2.1 — Review information for iOS 1.1.0 (build 11)
 
 Screen recording on a physical iPhone: [VIDEO LINK]
 
@@ -64,9 +64,9 @@ How to test:
 1. Launch the app to open “Головна” (Home). The app has no accounts, paid features, or shared user content. No demo credentials or sample files are required.
 2. On “Головна”, tap “Ветеран” (Veteran), search for “УБД”, and open “Статус і документи” (Status and documents). In “Як отримати УБД”, view the “Що підготувати” (What to prepare) list. Expand “Джерела й перевірка” at the bottom to see official sources.
 3. Open “Помічник” (Assistant) and tap “Які документи потрібні для УБД?” to see how the assistant finds a relevant guide. In “Меню” (Menu), open “Контакти” (Contacts), type “Ізма”, and view the Izmail community contact.
-4. In the Assistant, tap the microphone and allow voice assistance and microphone access. Record “Розкажіть про ветеранський спорт”, tap the square stop button, and check the editable draft. Clear the input, tap the waveform, and ask the same question. The app reads the guide’s answer using the Ukrainian system voice. If iOS has no Ukrainian voice installed, add one under Accessibility → Read & Speak → Voices.
+4. In the Assistant, tap the microphone and allow voice assistance and microphone access. Record “Розкажіть про ветеранський спорт”, tap the square stop button, and check the editable draft. Clear the input, tap the waveform, and ask the same question. The app reads the answer automatically using the Ukrainian Leonid Drapei voice. End the conversation and tap the speaker under a chat reply to hear the same voice.
 
-External services: Core features work offline with the bundled catalog. After explicit consent, the text assistant sends the submitted question and the previous topic ID through the guide’s Cloudflare Worker to OpenAI to select excerpts from official guide materials or generate a general answer. After separate voice consent, Cloudflare forwards microphone audio to OpenAI for transcription. In a live conversation, the app sends the transcribed question through the same text assistant. To withdraw consent, go to “Меню” → “Про гід” and switch off “Онлайн-допомога” (Online assistance) or “Голосова допомога” (Voice assistance). The News tab retrieves public headlines and images from mva.gov.ua and veteran.com.ua. Cloudflare also hosts the support and privacy pages.
+External services: Core features work offline with the bundled catalog. After explicit consent, the text assistant sends the submitted question and the previous topic ID through the guide’s Cloudflare Worker to OpenAI to select excerpts from official guide materials or generate a general answer. After separate voice consent, Cloudflare forwards microphone audio to OpenAI for transcription. In a live conversation, the app sends the transcribed question through the same text assistant. With voice assistance enabled, Cloudflare sends the prepared answer text to ElevenLabs for synthesis when a user taps the speaker in chat or receives an answer in a live conversation. To withdraw consent, go to “Меню” → “Про гід” and switch off “Онлайн-допомога” (Online assistance) or “Голосова допомога” (Voice assistance). The News tab retrieves public headlines and images from mva.gov.ua and veteran.com.ua. Cloudflare also hosts the support and privacy pages.
 
 Regional availability: The app is distributed in Ukraine. National procedures are available throughout Ukraine, with additional contacts for Odesa Oblast. Features and content are the same for all users regardless of their location.
 
@@ -78,9 +78,9 @@ Support: https://nezlamnyi.eerinessbusiness.workers.dev/support.html
 
 ### Запис для App Review і повторне подання
 
-1. Після завантаження в TestFlight встановіть збірку `1.0.0 (10)` на фізичний iPhone з актуальною версією iOS. Перед записом перевірте сценарій із нотаток і запуск без мережі. З інтернетом відкрийте посилання на джерело, підтримку та політику конфіденційності.
+1. Після завантаження в TestFlight встановіть збірку `1.1.0 (11)` на фізичний iPhone з актуальною версією iOS. Перед записом перевірте сценарій із нотаток і запуск без мережі. З інтернетом відкрийте посилання на джерело, підтримку та політику конфіденційності.
 2. На чистому встановленні почніть запис із домашнього екрана iPhone й відкрийте гід. Покажіть перший запуск, вибір статусу, пошук і картку зі списком підготовки та джерелами, відповідь «Характерника» й пошук контакту. Додайте посилання на відео до нотаток і перевірте його у приватному вікні браузера.
-3. У [поданні із зауваженням](https://appstoreconnect.apple.com/apps/6837277648/distribution/reviewsubmissions/details/18f1b39a-fc84-472e-85c5-6d72c2f258de) виберіть **Edit** біля версії. Вказана в картці версія App Store має бути `1.0.0`. У секції **Build** виберіть збірку `10` і звірте скриншоти з цією збіркою. Збережіть **App Review Information → Notes**, натисніть **Add for Review** і завершіть подання через **Resubmit to App Review**. [Вибір збірки](https://developer.apple.com/help/app-store-connect/manage-builds/choose-a-build-to-submit/) · [Кроки повторного подання](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/manage-a-submission-with-unresolved-issues)
+3. У [поданні із зауваженням](https://appstoreconnect.apple.com/apps/6837277648/distribution/reviewsubmissions/details/18f1b39a-fc84-472e-85c5-6d72c2f258de) виберіть **Edit** біля версії. Вказана в картці версія App Store має бути `1.1.0`. У секції **Build** виберіть збірку `11` і звірте скриншоти з цією збіркою. Збережіть **App Review Information → Notes**, натисніть **Add for Review** і завершіть подання через **Resubmit to App Review**. [Вибір збірки](https://developer.apple.com/help/app-store-connect/manage-builds/choose-a-build-to-submit/) · [Кроки повторного подання](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/manage-a-submission-with-unresolved-issues)
 
 ## Публічні сторінки та перевірка Release
 

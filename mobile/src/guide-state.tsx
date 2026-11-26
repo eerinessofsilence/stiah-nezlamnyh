@@ -8,7 +8,7 @@ import { readProfile, type GuideProfile } from './guide-profile';
 const profileKey = 'nezlamnyi-guide-profile-v1';
 const legacyStatusKey = 'nezlamnyi-user-status-v1';
 const assistantConsentKey = 'nezlamnyi-assistant-consent-v1';
-const voiceConsentKey = 'nezlamnyi-assistant-voice-consent-v1';
+const voiceConsentKey = 'nezlamnyi-assistant-voice-consent-v2';
 
 function loadConsent(key: string) {
   try {

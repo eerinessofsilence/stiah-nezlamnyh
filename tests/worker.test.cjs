@@ -12,6 +12,54 @@ register("data:text/javascript," + encodeURIComponent(`
   }
 `));
 
+test("Store speech sends only bounded reply text to Leonid and charges the speech budget", async t => {
+  const {default: worker, AssistantQuota} = await import("../worker.mjs");
+  const records = new Map();
+  const text = "Вітаю, я Леонід.";
+  const env = {
+    ASSISTANT_ENABLED: "true", OPENAI_API_KEY: "test-key", ASSISTANT_VOICE_ENABLED: "true",
+    ASSISTANT_SPEECH_DAILY_CHARS: String(text.length),
+  };
+  const quota = new AssistantQuota({storage: {
+    kv: {get: key => records.get(key), put: (key, value) => records.set(key, value)},
+    transactionSync: work => work(),
+  }}, env);
+  env.ASSISTANT_RATE = {limit: async () => ({success: true})};
+  env.ASSISTANT_QUOTA = {getByName: () => ({fetch: (url, options) => quota.fetch(new Request(url, options))})};
+  const endpoint = "https://test.example/api/assistant";
+  const speak = payload => worker.fetch(new Request(endpoint + "/speech", {
+    method: "POST", headers: {"Content-Type": "application/json; charset=utf-8"}, body: JSON.stringify(payload),
+  }), env);
+
+  assert.equal((await speak({text})).status, 503);
+  env.ELEVENLABS_API_KEY = "test-eleven-key";
+  assert.deepEqual(await (await worker.fetch(new Request(endpoint), env)).json(), {enabled: true, voice: true, speech: true, revision});
+  assert.equal((await worker.fetch(new Request(endpoint + "/speech"), env)).status, 405);
+  assert.equal((await speak({text: " "})).status, 400);
+  assert.equal((await speak({text: "я".repeat(8001)})).status, 400);
+  assert.equal((await speak({text, padding: "a".repeat(32768)})).status, 413);
+  assert.equal(records.size, 0);
+
+  const mp3 = new Uint8Array(64);
+  mp3.set(new TextEncoder().encode("ID3"));
+  const provider = t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(url, "https://api.elevenlabs.io/v1/text-to-speech/eLDtXX7z65CuLasDRxrP?output_format=mp3_44100_128");
+    assert.equal(options.headers["xi-api-key"], "test-eleven-key");
+    assert.equal(options.redirect, "manual");
+    assert.deepEqual(JSON.parse(options.body), {text, model_id: "eleven_flash_v2_5", language_code: "uk"});
+    return new Response(mp3);
+  });
+  const response = await speak({text: ` ${text} `, question: "private", history: []});
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Content-Type"), "audio/mpeg");
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), mp3);
+  assert.deepEqual([...records.keys()], ["speech-daily"]);
+  assert.equal(records.get("speech-daily").count, text.length);
+  assert.equal((await speak({text})).status, 429);
+  assert.equal(provider.mock.callCount(), 1);
+});
+
 test("Store assistant sends only valid text requests to the shared model and respects both limits", async t => {
   const {default: worker, AssistantQuota} = await import("../worker.mjs");
   const records = new Map();
@@ -51,7 +99,7 @@ test("Store assistant sends only valid text requests to the shared model and res
   const prompt = {question: "Кінцівку не вдалося зберегти. З чого почати?", revision};
   assert.equal(await (await worker.fetch(new Request(root + "/privacy.html"), env)).text(), "/privacy.html");
   assert.equal((await worker.fetch(new Request(endpoint + "/transcribe", {method: "POST"}), env)).status, 503);
-  assert.deepEqual(await (await worker.fetch(new Request(endpoint), env)).json(), {enabled: true, voice: false, revision});
+  assert.deepEqual(await (await worker.fetch(new Request(endpoint), env)).json(), {enabled: true, voice: false, speech: false, revision});
   env.ASSISTANT_ENABLED = "false";
   assert.equal((await ask(prompt)).status, 503);
   env.ASSISTANT_ENABLED = "true";
@@ -115,7 +163,7 @@ test("Store voice validates uploads and shares a separate daily limit with live 
   wav.writeUInt16LE(16, 34);
   wav.write("data", 36);
   wav.writeUInt32LE(wav.length - 44, 40);
-  assert.deepEqual(await (await worker.fetch(new Request(endpoint), env)).json(), {enabled: true, voice: true, revision});
+  assert.deepEqual(await (await worker.fetch(new Request(endpoint), env)).json(), {enabled: true, voice: true, speech: false, revision});
   assert.equal((await record("text/plain", "not audio")).status, 415);
   assert.equal((await record("audio/wav", null)).status, 400);
   assert.equal((await record("audio/wav", new Uint8Array(100))).status, 400);

@@ -5,6 +5,33 @@ const liveTranscriptionUrl = "https://api.openai.com/v1/realtime?intent=transcri
 const recordingLimit = 2 * 1024 * 1024;
 const liveFrameLimit = 32 * 1024;
 const bytesPerSecond = 24000 * 2;
+const speechBodyLimit = 32 * 1024;
+const speechAudioLimit = 12 * 1024 * 1024;
+const defaultVoice = "eLDtXX7z65CuLasDRxrP";
+
+function speechText(payload) {
+  const text = typeof payload?.text === "string" ? payload.text.trim() : "";
+  return text && text.length <= 8000 ? text : null;
+}
+
+async function synthesizeSpeech(text, {elevenLabsKey, elevenLabsVoice, piperUrl}) {
+  const url = elevenLabsKey ?
+    `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(elevenLabsVoice || defaultVoice)}?output_format=mp3_44100_128` : piperUrl;
+  const payload = elevenLabsKey ? {text, model_id: "eleven_flash_v2_5", language_code: "uk"} : {text, length_scale: 1.05};
+  const response = await fetch(url, {
+    method: "POST", headers: {"Content-Type": "application/json", ...(elevenLabsKey && {"xi-api-key": elevenLabsKey})},
+    redirect: "manual", body: JSON.stringify(payload), signal: AbortSignal.timeout(14000)
+  });
+  if (!response.ok || Number(response.headers.get("content-length")) > speechAudioLimit) throw new Error("Speech unavailable");
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.length <= 44 || bytes.length > speechAudioLimit) throw new Error("Invalid speech audio");
+  const view = new DataView(bytes.buffer);
+  // Piper can return a WAV with a non-audio Content-Type.
+  const valid = elevenLabsKey ? (view.getUint32(0) >>> 8) === 0x494433 || (view.getUint16(0) & 0xffe0) === 0xffe0 :
+    view.getUint32(0) === 0x52494646 && view.getUint32(8) === 0x57415645;
+  if (!valid) throw new Error("Invalid speech audio");
+  return {bytes, type: elevenLabsKey ? "audio/mpeg" : "audio/wav"};
+}
 
 function normalizeVoiceRecording(bytes) {
   if (bytes.length < 44) return null;
@@ -156,4 +183,7 @@ function relayLiveTranscription(client, upstream) {
   else upstream.addEventListener("open", configure);
 }
 
-module.exports = {audioTypes, recordingLimit, liveFrameLimit, liveTranscriptionUrl, normalizeVoiceRecording, transcribeAudio, relayLiveTranscription};
+module.exports = {
+  audioTypes, recordingLimit, liveFrameLimit, liveTranscriptionUrl, normalizeVoiceRecording, transcribeAudio, relayLiveTranscription,
+  speechBodyLimit, speechText, synthesizeSpeech,
+};

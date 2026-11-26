@@ -4,7 +4,10 @@ const {readFile} = require("node:fs/promises");
 const path = require("node:path");
 const {WebSocket, WebSocketServer} = require("ws");
 const {revision, parseQuestion, answerQuestion} = require("./assistant-text.cjs");
-const {audioTypes, recordingLimit, liveFrameLimit, liveTranscriptionUrl, transcribeAudio, relayLiveTranscription} = require("./assistant-voice.cjs");
+const {
+  audioTypes, recordingLimit, liveFrameLimit, liveTranscriptionUrl, transcribeAudio, relayLiveTranscription,
+  speechBodyLimit, speechText, synthesizeSpeech,
+} = require("./assistant-voice.cjs");
 
 const port = Number(process.env.PORT || 4173);
 const key = process.env.OPENAI_API_KEY;
@@ -12,7 +15,7 @@ const model = process.env.OPENAI_MODEL;
 const llamaUrl = process.env.ASSISTANT_LLAMA_URL;
 const piperUrl = process.env.ASSISTANT_PIPER_URL;
 const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
-const elevenLabsVoice = process.env.ELEVENLABS_VOICE_ID || "eLDtXX7z65CuLasDRxrP";
+const elevenLabsVoice = process.env.ELEVENLABS_VOICE_ID;
 if (llamaUrl && !/^http:\/\/127\.0\.0\.1:[0-9]+\/v1\/chat\/completions$/.test(llamaUrl)) {
   throw new Error("ASSISTANT_LLAMA_URL must be a loopback llama.cpp chat completions URL");
 }
@@ -92,31 +95,17 @@ async function speech(request, response) {
   if (!withinQuota("speech", 24)) return json(response, 429, {error: "Rate limit"});
   let text;
   try {
-    const body = await readBody(request, 32 * 1024);
+    const body = await readBody(request, speechBodyLimit);
     if (!body) return json(response, 413, {error: "Speech text too long"});
-    text = JSON.parse(body.toString("utf8"))?.text;
+    text = speechText(JSON.parse(body.toString("utf8")));
   } catch {
     return json(response, 400, {error: "Invalid speech request"});
   }
-  if (typeof text !== "string" || !text.trim() || text.length > 8000) {
-    return json(response, 400, {error: "Invalid speech text"});
-  }
+  if (!text) return json(response, 400, {error: "Invalid speech text"});
   try {
-    const url = elevenLabsKey ?
-      `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(elevenLabsVoice)}?output_format=mp3_44100_128` : piperUrl;
-    const payload = elevenLabsKey ? {text, model_id: "eleven_flash_v2_5", language_code: "uk"} : {text, length_scale: 1.05};
-    const audio = await fetch(url, {
-      method: "POST", headers: {"Content-Type": "application/json", ...(elevenLabsKey && {"xi-api-key": elevenLabsKey})},
-      redirect: "error", body: JSON.stringify(payload), signal: AbortSignal.timeout(14000)
-    });
-    if (!audio.ok || Number(audio.headers.get("content-length")) > 12 * 1024 * 1024) throw new Error();
-    const bytes = Buffer.from(await audio.arrayBuffer());
-    // Piper 1.8 can label its WAV as text/html, so check the file signature.
-    const validAudio = elevenLabsKey ? bytes.toString("ascii", 0, 3) === "ID3" || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) :
-      bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WAVE";
-    if (bytes.length <= 44 || bytes.length > 12 * 1024 * 1024 || !validAudio) throw new Error();
+    const {bytes, type} = await synthesizeSpeech(text, {elevenLabsKey, elevenLabsVoice, piperUrl});
     response.writeHead(200, {
-      "Content-Type": elevenLabsKey ? "audio/mpeg" : "audio/wav", "Content-Length": bytes.length, "Cache-Control": "no-store"
+      "Content-Type": type, "Content-Length": bytes.length, "Cache-Control": "no-store"
     });
     response.end(bytes);
   } catch {

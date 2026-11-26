@@ -106,7 +106,7 @@ export default function AssistantScreen() {
   const voiceEndpoint = devAssistantEndpoint ?? storeVoiceEndpoint;
   const checkVoice = Boolean(voiceEndpoint && !offline && (devOnline || storeVoiceEndpoint));
   const voiceEnabled = checkVoice && capabilities?.voice === true;
-  const serverSpeech = devOnline && capabilities?.speech === true;
+  const serverSpeech = checkVoice && capabilities?.speech === true;
   const audio = useAssistantAudio({
     endpoint: voiceEndpoint, token: devToken, active: voiceEnabled && focused &&
       (!voiceMode || voiceEndpoint !== storeVoiceEndpoint || voiceConsent), playbackActive: focused, serverSpeech,
@@ -320,17 +320,14 @@ export default function AssistantScreen() {
   const showLiveAction = voiceEnabled && questionLength === 0;
   const actionEnabled = showLiveAction ? composerReady : canSend;
   const inputLimit = voiceDraft ? Math.max(500, question.length) : 500;
-  async function allowVoice() {
-    if (!voiceEnabled || !voiceEndpoint) return false;
-    if (voiceEndpoint === storeVoiceEndpoint && !voiceConsent) {
-      if (!await askVoiceConsent() || !screenFocused.current || getActiveId() !== activeId) return false;
-      return saveVoiceConsent(true);
-    }
-    return true;
+  async function allowOnlineVoice() {
+    if (voiceEndpoint !== storeVoiceEndpoint || voiceConsent) return true;
+    if (!await askVoiceConsent() || !screenFocused.current || getActiveId() !== activeId) return false;
+    return saveVoiceConsent(true);
   }
 
   async function recordVoice() {
-    if (!await allowVoice()) return;
+    if (!voiceEnabled || !await allowOnlineVoice()) return;
     Keyboard.dismiss();
     void audio.startRecording();
   }
@@ -341,7 +338,7 @@ export default function AssistantScreen() {
       Alert.alert('Потрібен український голос', 'Додайте український голос у налаштуваннях пристрою.');
       return;
     }
-    if (!await allowVoice()) return;
+    if (!await allowOnlineVoice()) return;
     Keyboard.dismiss();
     returnFromVoice.current = true;
     followLive.current = true;
@@ -349,6 +346,18 @@ export default function AssistantScreen() {
     setVoiceMode('full');
     void audio.startLive();
   }
+
+  async function speakReply(id: number, text: string) {
+    if (audio.speaking && speakingTurn === id) {
+      audio.stopSpeech();
+      return;
+    }
+    const allowServer = serverSpeech && await allowOnlineVoice();
+    if (!screenFocused.current || getActiveId() !== activeId) return;
+    setSpeakingTurn(id);
+    audio.speak(text, allowServer);
+  }
+
   const historyAction = (
     <GuideIconButton ref={historyTrigger} icon="chats" label="Історія чатів" disabled={busyAudio} onPress={() => {
       Keyboard.dismiss();
@@ -459,13 +468,7 @@ export default function AssistantScreen() {
                 {turn.answers ? <ReplyAppearance pending={revealTurn.current === turn.id} onReveal={(y, height) => revealReply(turn.id, y, height)}>
                   <AssistantAnswer turn={turn} answers={turn.answers} onChoose={choice => clarify(turn.id, choice)}
                     onRetry={() => void submit(turn.question, false, turn.id)} actionsDisabled={!composerReady}
-                    speaking={audio.speaking && speakingTurn === turn.id} onSpeak={text => {
-                      if (audio.speaking && speakingTurn === turn.id) audio.stopSpeech();
-                      else {
-                        setSpeakingTurn(turn.id);
-                        audio.speak(text);
-                      }
-                    }} />
+                    speaking={audio.speaking && speakingTurn === turn.id} onSpeak={text => void speakReply(turn.id, text)} />
                 </ReplyAppearance> : <AnswerLoading />}
               </Fragment>
             ))}
