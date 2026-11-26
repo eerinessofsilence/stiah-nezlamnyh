@@ -3,7 +3,8 @@ import { createContext, type Dispatch, type ReactNode, type SetStateAction, useC
 type VoiceSession = {
   endpoint: string;
   token: string;
-  voice: string;
+  voice?: string;
+  piperSpeech: boolean;
   onDraft: (text: string) => void;
   onQuestion: (text: string) => Promise<string | undefined>;
 };

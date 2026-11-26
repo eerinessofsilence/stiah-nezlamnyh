@@ -1,6 +1,7 @@
 import type { ImageRequireSource } from 'react-native';
 
 export const guideIconSources = {
+  'arrow-clockwise': require('../assets/phosphor/arrow-clockwise.png'),
   'arrow-right': require('../assets/phosphor/arrow-right.png'),
   'arrow-square-out': require('../assets/phosphor/arrow-square-out.png'),
   assistant: require('../assets/tabs/assistant.png'),
@@ -16,6 +17,7 @@ export const guideIconSources = {
   chats: require('../assets/phosphor/chats.png'),
   check: require('../assets/phosphor/check.png'),
   'clipboard-text': require('../assets/phosphor/clipboard-text.png'),
+  copy: require('../assets/phosphor/copy.png'),
   'dots-three-vertical': require('../assets/phosphor/dots-three-vertical.png'),
   'file-text': require('../assets/phosphor/file-text.png'),
   'first-aid-kit': require('../assets/phosphor/first-aid-kit.png'),
@@ -41,6 +43,7 @@ export const guideIconSources = {
   'push-pin-fill': require('../assets/phosphor/push-pin-fill.png'),
   scales: require('../assets/phosphor/scales.png'),
   shield: require('../assets/phosphor/shield.png'),
+  'speaker-high': require('../assets/phosphor/speaker-high.png'),
   'stop-fill': require('../assets/phosphor/stop-fill.png'),
   'squares-four': require('../assets/phosphor/squares-four.png'),
   'squares-four-fill': require('../assets/phosphor/squares-four-fill.png'),

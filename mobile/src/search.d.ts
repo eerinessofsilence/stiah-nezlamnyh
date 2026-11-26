@@ -1,11 +1,12 @@
 import type { GuideSection, Service } from './data/catalog';
 
-export type AnswerChoice = { route: string; section: string | null };
-export type CatalogReply = { answers: AnswerChoice[]; mode: 'answer' | 'clarify' | 'partial' };
+export type AnswerChoice = { route: string; section: string | null; paragraphs?: number[] };
+export type Conversation = 'greeting' | 'available' | 'thanks' | 'about' | 'offTopic';
+export type CatalogReply = { answers: AnswerChoice[]; mode: 'answer' | 'clarify' | 'partial'; conversation?: Conversation };
+export const conversationReplies: Record<Conversation, string>;
 
 export function findServices(services: Service[], query: string): Service[];
 export function findSections(sections: GuideSection[], query: string, allowPartial?: boolean): GuideSection[];
-export function sectionExcerpt(section: GuideSection, question: string): string;
 export function matchTopics(services: Service[], question: string, lastTopic?: string | null): string[];
 export function answerSections(service: Service, question: string, previousSection?: string | null): GuideSection[];
 export function findContacts<T extends { keys: string }>(contacts: T[], query: string): T[];

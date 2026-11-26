@@ -52,6 +52,22 @@ test('assistant opens verified definitions and continues into the relevant guide
   assert.equal(findServices(services, 'СЗЧ')[0].id, 'legal');
 });
 
+test('offline search distinguishes loss of a limb, an item and a person', () => {
+  const start = {route: 'rehab', section: 'after-amputation'};
+  for (const question of ['я потерял ногу', 'Мой муж остался без ноги', 'Мені ампутували обидві ноги',
+    'Я втратила праву руку. З чого почати?', 'Після ампутації, що далі?']) {
+    assert.deepEqual(localCatalogReply(services, question, {route: 'fallen-family', section: null}).answers, [start], question);
+  }
+  for (const question of ['я потерял', 'я потерял паспорт', 'я потерял собаку', 'я не потерял ногу', 'потерял чувствительность в ноге']) {
+    assert.deepEqual(localCatalogReply(services, question).answers, [], question);
+  }
+  assert.equal(localAnswers(services, 'Мы потеряли кормильца')[0].route, 'fallen-family');
+  assert.deepEqual(localAnswers(services, 'Я потеряла ногу. Как починить протез?'), [{route: 'rehab', section: 'repair'}]);
+  const evidence = {...start, paragraphs: [2]};
+  assert.deepEqual(parseAiAnswers(services, [evidence]), [evidence]);
+  for (const paragraphs of [[0], [999], ['2'], [2, 2]]) assert.throws(() => parseAiAnswers(services, [{...start, paragraphs}]));
+});
+
 test('assistant handles overviews, follow-ups and distinct parts of a request offline', () => {
   const sport = { route: 'veteran-sports', section: null };
   const training = { ...sport, section: 'training' };

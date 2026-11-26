@@ -7,6 +7,16 @@ import { readProfile, type GuideProfile } from './guide-profile';
 
 const profileKey = 'nezlamnyi-guide-profile-v1';
 const legacyStatusKey = 'nezlamnyi-user-status-v1';
+const assistantConsentKey = 'nezlamnyi-assistant-consent-v1';
+
+function loadAssistantConsent() {
+  try {
+    const value = Storage.getItemSync(assistantConsentKey);
+    return value === 'allowed' ? true : value === 'declined' ? false : null;
+  } catch {
+    return null;
+  }
+}
 
 function loadProfile() {
   try {
@@ -22,12 +32,28 @@ const GuideState = createContext<{
   query: string;
   setQuery: (query: string) => void;
   offline: boolean;
+  assistantConsent: boolean | null;
+  saveAssistantConsent: (allowed: boolean) => boolean;
 } | null>(null);
 
 export function GuideProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState(loadProfile);
   const [query, setQuery] = useState('');
+  const [assistantConsent, setAssistantConsent] = useState(loadAssistantConsent);
   const network = Network.useNetworkState();
+
+  function saveAssistantConsent(allowed: boolean) {
+    if (!allowed) setAssistantConsent(false);
+    try {
+      Storage.setItemSync(assistantConsentKey, allowed ? 'allowed' : 'declined');
+      if (allowed) setAssistantConsent(true);
+      return true;
+    } catch {
+      Alert.alert(allowed ? 'Онлайн-допомогу не ввімкнено' : 'Онлайн-допомогу вимкнено в цьому сеансі',
+        'Не вдалося зберегти налаштування. Спробуйте ще раз.');
+      return false;
+    }
+  }
 
   function saveProfile(next: GuideProfile) {
     try {
@@ -43,6 +69,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
 
   return <GuideState.Provider value={{
     profile, saveProfile,
+    assistantConsent, saveAssistantConsent,
     query, setQuery, offline: network.isConnected === false || network.isInternetReachable === false,
   }}>{children}</GuideState.Provider>;
 }

@@ -170,6 +170,21 @@
       "https://mod.gov.ua/explanation/yak-viiskovym-i-veteranam-proity-bezoplatnu-reabilitatsiiu",
       "19.11.2026"
     ],
+    "afterAmputation": [
+      "МОЗ · маршрут після ампутації",
+      "https://moz.gov.ua/uk/marshrut-paciyenta-z-amputaciyeyu",
+      "25.11.2026"
+    ],
+    "rehabReferral": [
+      "МОЗ · як розпочати реабілітацію",
+      "https://moz.gov.ua/uk/bezoplatna-reabilitaciya-v-ukrayini-yak-otrimati-dopomogu",
+      "25.11.2026"
+    ],
+    "emergencyCare": [
+      "МОЗ · коли викликати екстрену допомогу",
+      "https://moz.gov.ua/uk/ekstrena-medichna-dopomoga-scho-ce-koli-nadaetsja-chi-potribno-za-nei-platiti",
+      "25.11.2026"
+    ],
     "utilities": [
       "ПФУ · житлово-комунальні пільги ветеранам і родинам",
       "https://www.pfu.gov.ua/ko/543873-pilgy-na-zhytlovo-komunalni-poslugy-veteranam-vijny-ta-chlenam-yih-simej/",
@@ -747,7 +762,10 @@
       "source": [
         "rehabilitation",
         "prosthetics",
-        "socialPortal"
+        "socialPortal",
+        "afterAmputation",
+        "rehabReferral",
+        "emergencyCare"
       ],
       "steps": [
         "Якщо потрібна реабілітація, попросіть лікуючого лікаря визначити потребу й оформити направлення. Якщо потрібен протез чи інший засіб, попросіть оформити висновок про потребу в засобі.",
@@ -792,6 +810,25 @@
           "action": [
             "prosthetics",
             "Знайти підприємство програми"
+          ]
+        },
+        {
+          "id": "after-amputation",
+          "title": "З чого почати після втрати кінцівки",
+          "keys": "ампутація|ампутация|після ампутації|после ампутации|втрата кінцівки|потеря конечности",
+          "paragraphs": [
+            "Мені шкода, що вам довелося через це пройти. Якщо травма сталася щойно й медиків поруч немає, телефонуйте 103.",
+            "Якщо ви в лікарні, попросіть лікуючого лікаря допомогти скласти план реабілітації до виписки. Якщо ви вже вдома, зверніться до сімейного або лікуючого лікаря за направленням на реабілітацію.",
+            "Якщо хочете отримати протез, запитайте реабілітаційну команду, як оформити висновок про потребу в ньому. Соціальний працівник у лікарні може допомогти із заявою. Також її можна подати через ЦНАП."
+          ],
+          "action": [
+            "afterAmputation",
+            "Відкрити маршрут МОЗ"
+          ],
+          "source": [
+            "afterAmputation",
+            "rehabReferral",
+            "emergencyCare"
           ]
         }
       ],
@@ -1160,7 +1197,7 @@
       "title": "Сімʼї загиблих",
       "group": "family",
       "desc": "Перші документи, статус сім’ї, одноразова допомога і пенсія.",
-      "keys": "загиблий загиблого загиблих полеглий полеглих смерть поховання померлих акт розслідування частина погибший погибших потеря кормильца",
+      "keys": "загиблий загиблого загиблих полеглий полеглих смерть поховання померлих акт розслідування частина погибший погибших кормильца",
       "source": [
         "fallenStatus",
         "fallenOrder",
@@ -2831,5 +2868,5 @@
       "source": "districtContacts"
     }
   ],
-  "revision": "4a36be513553542e413c518fec6fc57cc7fe738d33da874d8c85f2abbcaa67dc"
+  "revision": "00d8215ebacbdad0bcb2440d99e578dce5be60aea46ffdcb9a11aa87cf96e54b"
 }

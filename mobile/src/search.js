@@ -79,22 +79,6 @@ const guideSearch = (() => {
     }).filter(({score}) => score > 0).sort((a, b) => b.score - a.score).map(({section}) => section);
   }
 
-  function sectionExcerpt(section, question) {
-    const words = questionParts(question).flatMap(queryWords);
-    let best = 0;
-    let relevant = null;
-    for (const paragraph of section.paragraphs) {
-      const terms = new Set(tokens(paragraph));
-      const score = words.filter(word => terms.has(word)).length;
-      if (score > best) {
-        relevant = paragraph;
-        best = score;
-      }
-    }
-    const lead = section.paragraphs[0];
-    return relevant && relevant !== lead ? lead.slice(0, 280) + "\n" + relevant.slice(0, 280) : lead.slice(0, 280);
-  }
-
   const subjectRules = [
     [/зуб|стоматолог/iu, "medical"],
     [/(?:^|[^\p{L}])(?:ліки|ліків|ліками)(?!\p{L})|лікарськ\p{L}* засоб|рецепт|аптек|аптеці|медикамент|лекарств/u, "medical"],
@@ -127,6 +111,18 @@ const guideSearch = (() => {
       /(?:^| )(?:назви|назови) (?:точну |точную )?дату коли .*повернеться|(?:^| )коли (?:вони |мені )+подзвонять(?: |$)/u.test(phrase);
   }
 
+  // A loss verb needs an object. On its own it is not evidence of either amputation or bereavement.
+  function reportsLimbLoss(phrase) {
+    if (/(?:^| )(?:після ампутації|после ампутации)(?: |$)/u.test(phrase)) return true;
+    const words = phrase.split(" ");
+    return words.some((word, i) => {
+      if (!/^(?:ногу|ноги|ніг|ног|руку|руки|рук|кінцівку|конечность|стопу|кисть)$/u.test(word)) return false;
+      const modifier = /^(?:ліву|левую|праву|правую|обидві|обе|частину|часть)$/u;
+      const before = words.slice(0, modifier.test(words[i - 1]) ? i - 1 : i).join(" ");
+      return /(?:^| )(?<!не )(?:потерял[аи]?|втратив|втратила|втратили|ампутували|ампутировали|відірвало|оторвало|залиши(?:вся|лася) без|остал(?:ся|ась) без|немає|нет)$/u.test(before);
+    });
+  }
+
   function matchTopics(services, question, lastTopic) {
     const plain = question.toLocaleLowerCase("uk");
     const phrase = normalized(plain);
@@ -145,6 +141,7 @@ const guideSearch = (() => {
     if (explicit.includes("work") && /бізнес|грант|ваучер/u.test(plain)) return ["work"];
     if (explicit.includes("vlk") && explicit.includes("injury") && /(?:скільки|виплат|грошове забезпечення|втрата працездатності)/u.test(plain)) return ["injury"];
     if (explicit.length) return [explicit[0]];
+    if (reportsLimbLoss(phrase) && services.some(service => service.id === "rehab")) return ["rehab"];
     if (lastTopic && !meaningPrompt.test(phrase.replace(/^(?:а|і|и) /u, "")) &&
         /^(?:а\s+|і\s+)?(?:де|где|куди|куда|як|как|які|какие|скільки|коли|чи|що|что|а|і|и)(?=\s|[?!,.]|$)/iu.test(question.trim())) {
       return [lastTopic];
@@ -166,6 +163,10 @@ const guideSearch = (() => {
     if (best && best.score > 0) {
       const tied = scored.filter(({score}) => score === best.score).map(({section}) => section);
       return tied.length === 1 ? [best.section] : tied;
+    }
+    if (service.id === "rehab" && reportsLimbLoss(normalized(question))) {
+      const start = service.sections.find(section => section.id === "after-amputation");
+      if (start) return [start];
     }
     if (previousSection && /^(?:а\s+)?(?:які документи|що підготувати|куди подати|куди звернутися|де подати)/iu.test(question.trim())) {
       const previous = service.sections.find(section => section.id === previousSection);
@@ -260,23 +261,42 @@ const guideSearch = (() => {
     return value.map(item => {
       const {route, section} = item ?? {};
       const service = services.find(item => item.id === route);
-      if (!service || (section !== null && !service.sections.some(item => item.id === section))) {
+      const material = service?.sections.find(item => item.id === section);
+      if (!service || (section !== null && !material)) {
         throw new Error("Unknown catalogue entry");
       }
-      return {route, section};
+      const {paragraphs} = item;
+      if (paragraphs === undefined) return {route, section};
+      if (!material || !Array.isArray(paragraphs) || !paragraphs.length || new Set(paragraphs).size !== paragraphs.length ||
+          !paragraphs.every(id => Number.isInteger(id) && id >= 1 && id <= material.paragraphs.length)) {
+        throw new Error("Unknown catalogue paragraph");
+      }
+      return {route, section, paragraphs};
     });
   }
+
+  const conversationReplies = {
+    greeting: "Вітаю! Чим можу допомогти?",
+    available: "Так, я на зв’язку. Чим можу допомогти?",
+    thanks: "Будь ласка! Якщо виникне ще запитання, звертайтеся.",
+    about: "Я Характерник, помічник ветеранського гіда. Можу пояснити ветеранський термін або допомогти знайти послугу в гіді.",
+    offTopic: "Можу допомогти з ветеранськими послугами, документами й контактами з гіда. Що з цього вас цікавить?",
+  };
 
   function parseCatalogReply(services, value) {
     const answers = parseAiAnswers(services, value?.answers);
     const mode = value.mode ?? (answers.length > 1 ? "clarify" : "answer");
     if (!["answer", "clarify", "partial"].includes(mode) || (mode === "clarify" && answers.length < 2) ||
         (mode === "partial" && !answers.length)) throw new Error("Invalid assistant response");
-    return {answers, mode};
+    const conversation = value.conversation;
+    if (conversation === undefined) return {answers, mode};
+    if (mode !== "answer" || answers.length || typeof conversation !== "string" ||
+        !Object.hasOwn(conversationReplies, conversation)) throw new Error("Invalid conversational reply");
+    return {answers, mode, conversation};
   }
 
-  return {findServices, findSections, sectionExcerpt, matchTopics, answerSections, findContacts, directCatalogAnswers, requiresUnavailableAnswer,
-    localAnswers, questionParts, localCatalogReply, parseAiAnswers, parseCatalogReply, normalized};
+  return {findServices, findSections, matchTopics, answerSections, findContacts, directCatalogAnswers, requiresUnavailableAnswer,
+    localAnswers, questionParts, localCatalogReply, parseAiAnswers, parseCatalogReply, normalized, conversationReplies};
 })();
 
 if (typeof module !== "undefined") module.exports = guideSearch;

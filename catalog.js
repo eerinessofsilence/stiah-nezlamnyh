@@ -33,6 +33,9 @@ const catalogSources = {
   disabilityStatus: ["Мінветеранів · статус особи з інвалідністю внаслідок війни", "https://mva.gov.ua/prescenter/category/86-novini/yak-otrimati-status-osobi-z-invalidnistu-vnaslidok-viyni-poyasnuemo-prosto", "19.11.2026"],
   referrals: ["МОЗ · як користуватися електронним направленням", "https://moz.gov.ua/uk/pam-yatka-dlya-paciyenta-yak-pracyuye-e-napravlennya-na-medichnu-poslugu-v-ukrayini", "19.11.2026"],
   rehabilitation: ["Міноборони · безоплатна реабілітація", "https://mod.gov.ua/explanation/yak-viiskovym-i-veteranam-proity-bezoplatnu-reabilitatsiiu", "19.11.2026"],
+  afterAmputation: ["МОЗ · маршрут після ампутації", "https://moz.gov.ua/uk/marshrut-paciyenta-z-amputaciyeyu", "25.11.2026"],
+  rehabReferral: ["МОЗ · як розпочати реабілітацію", "https://moz.gov.ua/uk/bezoplatna-reabilitaciya-v-ukrayini-yak-otrimati-dopomogu", "25.11.2026"],
+  emergencyCare: ["МОЗ · коли викликати екстрену допомогу", "https://moz.gov.ua/uk/ekstrena-medichna-dopomoga-scho-ce-koli-nadaetsja-chi-potribno-za-nei-platiti", "25.11.2026"],
   utilities: ["ПФУ · житлово-комунальні пільги ветеранам і родинам", "https://www.pfu.gov.ua/ko/543873-pilgy-na-zhytlovo-komunalni-poslugy-veteranam-vijny-ta-chlenam-yih-simej/", "19.11.2026"],
   trainingVoucher: ["Одеський обласний центр зайнятості · ваучер на навчання", "https://ode.dcz.gov.ua/node/11460", "19.11.2026"],
   veteranGrant: ["Державна служба зайнятості · грант на бізнес для ветеранів і родин", "https://www.dcz.gov.ua/people/ubd", "19.11.2026"],
@@ -190,7 +193,7 @@ const catalogServices = [
     id: "rehab", title: "Реабілітація й протезування", group: "health",
     desc: "Відновлення, перший протез, допоміжні засоби, ремонт і заміна.",
     keys: "реабілітація реабілітац протез протезування відновлення допоміжний засіб візок крісло колісне реабилитация протезирование",
-    source: ["rehabilitation", "prosthetics", "socialPortal"],
+    source: ["rehabilitation", "prosthetics", "socialPortal", "afterAmputation", "rehabReferral", "emergencyCare"],
     steps: [
       "Якщо потрібна реабілітація, попросіть лікуючого лікаря визначити потребу й оформити направлення. Якщо потрібен протез чи інший засіб, попросіть оформити висновок про потребу в засобі.",
       "Оберіть нижче потрібний сценарій: реабілітація, отримання засобу або його ремонт чи заміна."
@@ -208,7 +211,12 @@ const catalogServices = [
       topic("repair", "Ремонт, обслуговування або заміна", "ремонт|відремонтувати|відремонтувати протез|ремонт протеза|заміна|замінити|поміняти|полагодити протез|полагодити|починить протез|гільза протеза|гільза|гильза|обслуговування|зламався", [
         "Почніть із підприємства, яке видало протез, або іншого надавача програми. Назвіть модель засобу, опишіть проблему та візьміть документи на виріб. Програма покриває передбачені роботи з ремонту, обслуговування й заміни.",
         "Підприємство підкаже, чи достатньо чинного направлення, чи потрібно подати заяву на ремонт або нове забезпечення. Якщо змінилася посадка гільзи, попросіть огляд протезиста. Якщо не знаєте, куди звернутися, почніть із відділення Фонду або фахівця із супроводу."
-      ], ["prosthetics", "Знайти підприємство програми"])
+      ], ["prosthetics", "Знайти підприємство програми"]),
+      topic("after-amputation", "З чого почати після втрати кінцівки", "ампутація|ампутация|після ампутації|после ампутации|втрата кінцівки|потеря конечности", [
+        "Мені шкода, що вам довелося через це пройти. Якщо травма сталася щойно й медиків поруч немає, телефонуйте 103.",
+        "Якщо ви в лікарні, попросіть лікуючого лікаря допомогти скласти план реабілітації до виписки. Якщо ви вже вдома, зверніться до сімейного або лікуючого лікаря за направленням на реабілітацію.",
+        "Якщо хочете отримати протез, запитайте реабілітаційну команду, як оформити висновок про потребу в ньому. Соціальний працівник у лікарні може допомогти із заявою. Також її можна подати через ЦНАП."
+      ], ["afterAmputation", "Відкрити маршрут МОЗ"], ["afterAmputation", "rehabReferral", "emergencyCare"])
     ],
     related: ["injury", "msek", "escort"]
   },
@@ -354,7 +362,7 @@ const catalogServices = [
   {
     id: "fallen-family", title: "Сімʼї загиблих", group: "family",
     desc: "Перші документи, статус сім’ї, одноразова допомога і пенсія.",
-    keys: "загиблий загиблого загиблих полеглий полеглих смерть поховання померлих акт розслідування частина погибший погибших потеря кормильца",
+    keys: "загиблий загиблого загиблих полеглий полеглих смерть поховання померлих акт розслідування частина погибший погибших кормильца",
     source: ["fallenStatus", "fallenOrder", "fallenApply", "fallenPayment", "fallenSchedule", "survivorPension", "survivorFiling", "pfuAccount", "missingBenefits", "veteranRights", "utilities", "fallenTax", "fallenServicePay", "familyPayOrder", "fallenGrantDeadline", "fallenPensionProcedure", "fallenVolunteers", "fallenRecords", "fallenBurial", "escort", "legalAid", "familyCourt"],
     steps: [
       "Збережіть офіційне сповіщення і отримайте свідоцтво про смерть. Зверніться до частини або ТЦК та СП щодо документів про службу та обставини загибелі.",

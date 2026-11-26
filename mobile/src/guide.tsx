@@ -25,7 +25,7 @@ export const guideContentMaxWidth = 448;
 // Match the horizontal inset of the floating tab bar on iPhone.
 export const guideContentInset = Platform.OS === 'ios' && !Platform.isPad && hasNativeHomeTabs ? 20 : 12;
 
-export function GuideScreen({ title, titleAction, titleType = 'title', fixedHeader, children, sheet = false, scrollRef, adjustForKeyboard = false, showOfflineNotice = false, footerHeight = 0, onScroll, onLayout, onScrollBeginDrag, onMomentumScrollEnd }: {
+export function GuideScreen({ title, titleAction, titleType = 'title', fixedHeader, children, sheet = false, scrollRef, adjustForKeyboard = false, showOfflineNotice = false, onScroll, onLayout, onScrollBeginDrag, onMomentumScrollEnd }: {
   title?: string;
   titleAction?: ReactNode;
   titleType?: 'title' | 'sheetTitle';
@@ -35,7 +35,6 @@ export function GuideScreen({ title, titleAction, titleType = 'title', fixedHead
   scrollRef?: Ref<ScrollViewInstance>;
   adjustForKeyboard?: boolean;
   showOfflineNotice?: boolean;
-  footerHeight?: number;
 } & Pick<ComponentProps<typeof ScrollView>, 'onScroll' | 'onLayout' | 'onScrollBeginDrag' | 'onMomentumScrollEnd'>) {
   const colors = useGuideColors();
   const { offline } = useGuideState();
@@ -110,7 +109,6 @@ export function GuideScreen({ title, titleAction, titleType = 'title', fixedHead
       contentContainerStyle={[
         styles.screen,
         sheet && styles.sheet,
-        footerHeight > 0 && { paddingBottom: 16 + footerHeight },
         android && sheet && {
           paddingTop: 24,
           paddingBottom: 16 + insets.bottom,

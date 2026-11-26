@@ -1,6 +1,29 @@
 name = "nezlamnyi"
+main = "worker.mjs"
 compatibility_date = "2026-11-11"
 workers_dev = true
 
 [assets]
 directory = "."
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[vars]
+ASSISTANT_ENABLED = "true"
+ASSISTANT_DAILY_LIMIT = "500"
+
+[observability]
+enabled = false
+
+[[ratelimits]]
+name = "ASSISTANT_RATE"
+namespace_id = "6837277648"
+simple = { limit = 12, period = 60 }
+
+[[durable_objects.bindings]]
+name = "ASSISTANT_QUOTA"
+class_name = "AssistantQuota"
+
+[[migrations]]
+tag = "assistant-v1"
+new_sqlite_classes = ["AssistantQuota"]

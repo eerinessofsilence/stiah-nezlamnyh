@@ -8,7 +8,14 @@ const {revision} = require("../mobile/src/data/catalog.json");
 test("Dev text, recording and live share auth and reject unsupported provider results", {timeout: 15000}, async t => {
   process.env.OPENAI_API_KEY = "test-key";
   process.env.ASSISTANT_DEV_TOKEN = "test-token";
+  const piperUrl = "http://127.0.0.1:5072/synthesize";
+  process.env.ASSISTANT_PIPER_URL = piperUrl;
   const realFetch = globalThis.fetch;
+  const spokenReply = "Вітаю, я Характерник.";
+  const wav = Buffer.alloc(48);
+  wav.write("RIFF", 0);
+  wav.write("WAVE", 8);
+  let speechUnavailable = false;
   let selection = "empty";
   let upstream;
   class TestProvider extends EventEmitter {
@@ -42,6 +49,10 @@ test("Dev text, recording and live share auth and reject unsupported provider re
   const server = require("../server.cjs");
   ws.WebSocket = WebSocket;
   t.mock.method(globalThis, "fetch", async (url, options) => {
+    if (url === piperUrl) {
+      assert.deepEqual(JSON.parse(options.body), {text: spokenReply, length_scale: 1.05});
+      return new Response(speechUnavailable ? "unavailable" : wav, {headers: {"Content-Type": "text/html"}});
+    }
     assert.equal(options.headers.Authorization, "Bearer test-key");
     if (url.endsWith("/audio/transcriptions")) {
       assert.equal(options.body.get("model"), "gpt-transcribe");
@@ -53,22 +64,32 @@ test("Dev text, recording and live share auth and reject unsupported provider re
     const request = JSON.parse(options.body);
     const input = JSON.parse(request.input);
     assert(request.model === "gpt-6-luna" && request.store === false);
-    assert(input.options.length <= 18);
-    if (selection === "ambiguous") {
-      const topic = input.options.find(entry => entry.route === "rehab" && entry.section === null);
-      return Response.json({output: [{type: "message", content: [{type: "output_text",
-        text: JSON.stringify({answers: [topic.number], mode: "answer"})}]}]});
+    const result = data => Response.json({output: [{type: "message", content: [{type: "output_text", text: JSON.stringify(data)}]}]});
+    if (request.text.format.name === "guide_lookup") {
+      const entries = [...request.instructions.matchAll(/^\s*(\d+)\. ([^\n]+)$/gm)];
+      assert.equal(entries.length, require("../catalog.js").services.reduce((n, service) => n + 1 + service.sections.length, 0));
+      const titles = selection === "sport-sources" ? ["Ветеранський спорт", "Чи можна отримати 1 500 грн у Дії"] :
+        selection === "ambiguous" ? ["Реабілітація й протезування"] :
+        selection === "context-overview" ? ["Ветеранський спорт"] :
+        ["evidence", "invalid-evidence"].includes(selection) ? ["З чого почати після втрати кінцівки"] :
+        ["Як отримати УБД", "Де знайти адаптивні тренування"];
+      if (selection === "greeting" || selection === "bad-conversation") {
+        return result({intent: selection === "greeting" ? "greeting" : "unapproved message", materials: []});
+      }
+      return result({intent: "guide", materials: selection === "invalid-lookup" ? [9999] :
+        titles.map(title => Number(entries.find(entry => entry[2] === title)?.[1])).filter(Boolean)});
     }
-    if (selection === "context-overview") {
-      const topic = input.options.find(entry => entry.route === "veteran-sports" && entry.section === null);
-      return Response.json({output: [{type: "message", content: [{type: "output_text",
-        text: JSON.stringify({answers: [topic.number], mode: "answer"})}]}]});
+    assert.equal(request.text.format.name, "catalogue_answers");
+    assert(input.options.every(entry => entry.paragraphs.length > 0));
+    const pick = (number, paragraphs = []) => ({number, paragraphs});
+    if (selection === "sport-sources") return result({answers: [pick(1), pick(2, [2])], mode: "answer"});
+    if (selection === "ambiguous" || selection === "context-overview") return result({answers: [pick(1)], mode: "answer"});
+    if (selection === "evidence" || selection === "invalid-evidence") {
+      assert.match(input.options[0].paragraphs[1], /лікар/);
+      return result({answers: [pick(1, [selection === "evidence" ? 2 : 99])], mode: "answer"});
     }
-    const match = input.options.find(entry => entry.route === "status" && entry.section === "ubd");
-    assert(match?.localMatch);
-    const training = input.options.find(entry => entry.route === "veteran-sports" && entry.section === "training");
-    const answers = selection === "combined" ? [match.number, training.number] :
-      selection === "valid" || selection === "partial" ? [match.number] : ["empty", "empty-partial"].includes(selection) ? [] : [999];
+    const answers = selection === "combined" ? [pick(1), pick(2)] :
+      selection === "valid" || selection === "partial" ? [pick(1)] : ["empty", "empty-partial"].includes(selection) ? [] : [pick(999)];
     const mode = ["partial", "empty-partial"].includes(selection) ? "partial" : "answer";
     const content = [{type: "output_text", text: JSON.stringify({answers, mode})}];
     if (selection === "valid") content.unshift({type: "output_text", text: "Incomplete first attempt"});
@@ -83,14 +104,29 @@ test("Dev text, recording and live share auth and reject unsupported provider re
     method: "POST", headers: {"Content-Type": "application/json", ...headers}, body: JSON.stringify(payload)
   });
   const question = {question: "Які документи потрібні для УБД?", revision};
-  assert.deepEqual(await (await realFetch(base, {headers: auth})).json(), {enabled: true, voice: true, revision});
+  assert.deepEqual(await (await realFetch(base, {headers: auth})).json(), {enabled: true, voice: true, speech: true, revision});
+  const synthesize = (text, headers = auth) => realFetch(`${base}/speech`, {
+    method: "POST", headers: {"Content-Type": "application/json", ...headers}, body: JSON.stringify({text})
+  });
+  assert.equal((await synthesize(spokenReply, {})).status, 403);
+  assert.equal((await synthesize(" ")).status, 400);
+  const spoken = await synthesize(spokenReply);
+  assert.equal(spoken.headers.get("content-type"), "audio/wav");
+  assert.deepEqual(Buffer.from(await spoken.arrayBuffer()), wav);
+  speechUnavailable = true;
+  assert.equal((await synthesize(spokenReply)).status, 502);
   assert.equal((await ask(question, {})).status, 403);
   assert.equal((await ask({...question, revision: "old"})).status, 409);
   assert.deepEqual(await (await ask(question)).json(), {answers: [], mode: "answer"});
+  selection = "greeting";
+  const greeting = {...question, question: "Хей, радий знайомству!"};
+  assert.deepEqual(await (await ask(greeting)).json(), {answers: [], mode: "answer", conversation: "greeting"});
+  selection = "bad-conversation";
+  assert.equal((await ask(greeting)).status, 502);
   selection = "empty-partial";
   assert.deepEqual(await (await ask(question)).json(), {answers: [], mode: "answer"});
   selection = "valid";
-  assert.deepEqual(await (await ask(question)).json(), {answers: [{route: "status", section: "ubd"}], mode: "answer"});
+  assert.deepEqual(await (await ask({...question, question: "Привіт! Які документи потрібні для УБД?"})).json(), {answers: [{route: "status", section: "ubd"}], mode: "answer"});
   selection = "combined";
   assert.deepEqual(await (await ask({...question, question: "Які документи потрібні для УБД і де знайти адаптивні тренування?"})).json(), {
     answers: [{route: "status", section: "ubd"}, {route: "veteran-sports", section: "training"}], mode: "answer"
@@ -110,6 +146,15 @@ test("Dev text, recording and live share auth and reject unsupported provider re
   });
   selection = "invalid";
   assert.equal((await ask(question)).status, 502);
+  const natural = {...question, question: "После ранения хожу на костылях, конечность спасти не удалось. С чего начать?"};
+  selection = "evidence";
+  assert.deepEqual(await (await ask(natural)).json(), {mode: "answer", answers: [{route: "rehab", section: "after-amputation", paragraphs: [1, 2]}]});
+  selection = "sport-sources";
+  const payment = (await (await ask({...question, question: "Чи можна зараз отримати гроші на спорт?"})).json()).answers;
+  assert.equal(payment.length, 1);
+  assert.equal(payment[0].section, "payment");
+  assert(payment[0].paragraphs === undefined || payment[0].paragraphs.includes(1));
+  for (selection of ["invalid-lookup", "invalid-evidence"]) assert.equal((await ask(natural)).status, 502);
   const szch = {route: "legal", section: "szch-meaning"};
   assert.deepEqual(await (await ask({...question, question: "Что такое вообще СЗЧ?"})).json(), {answers: [szch], mode: "answer"});
   assert.deepEqual(await (await ask({...question, question: "А розкажи докладніше", previous: szch})).json(), {

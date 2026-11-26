@@ -17,7 +17,8 @@
       "distribution": "store",
       "node": "22.13.0",
       "env": {
-        "EXPO_PUBLIC_GUIDE_SITE_URL": "https://nezlamnyi.eerinessbusiness.workers.dev"
+        "EXPO_PUBLIC_GUIDE_SITE_URL": "https://nezlamnyi.eerinessbusiness.workers.dev",
+        "EXPO_PUBLIC_STORE_ASSISTANT_URL": "https://nezlamnyi.eerinessbusiness.workers.dev/api/assistant"
       },
       "android": {
         "buildType": "app-bundle"
@@ -26,7 +27,8 @@
     "testflight": {
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_GUIDE_SITE_URL": "https://nezlamnyi.eerinessbusiness.workers.dev"
+        "EXPO_PUBLIC_GUIDE_SITE_URL": "https://nezlamnyi.eerinessbusiness.workers.dev",
+        "EXPO_PUBLIC_STORE_ASSISTANT_URL": "https://nezlamnyi.eerinessbusiness.workers.dev/api/assistant"
       },
       "ios": {
         "image": "macos-tahoe-26.4-xcode-26.4"

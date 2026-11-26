@@ -20,7 +20,7 @@ function VoiceSessionScreen({ session }: { session: NonNullable<ReturnType<typeo
   const setSession = useSetAssistantVoiceSession();
   const closing = useRef(false);
   const audio = useAssistantAudio({
-    endpoint: session.endpoint, token: session.token, liveVoice: session.voice, active: focused && !offline,
+    endpoint: session.endpoint, token: session.token, liveVoice: session.voice, piperSpeech: session.piperSpeech, active: focused && !offline,
     onQuestion: session.onQuestion,
     onDraft: text => { session.onDraft(text); end(); },
   });

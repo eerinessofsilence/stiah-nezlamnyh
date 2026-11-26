@@ -1,5 +1,5 @@
-import { type AudioStreamBuffer, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioStream } from 'expo-audio';
-import { File } from 'expo-file-system';
+import { type AudioPlayer, type AudioStreamBuffer, createAudioPlayer, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioStream } from 'expo-audio';
+import { File, Paths } from 'expo-file-system';
 import * as Speech from 'expo-speech';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, AppState } from 'react-native';
@@ -26,10 +26,12 @@ type Live = {
   keepalive?: ReturnType<typeof setInterval>;
 };
 
-export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion, liveVoice }: {
+export function useAssistantAudio({ endpoint, token, active, playbackActive = active, piperSpeech = false, onDraft, onQuestion, liveVoice }: {
   endpoint?: string;
   token: string;
   active: boolean;
+  playbackActive?: boolean;
+  piperSpeech?: boolean;
   onDraft: (text: string) => void;
   onQuestion: (text: string) => Promise<string | undefined>;
   liveVoice?: string;
@@ -39,6 +41,7 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
   const [confirmation, setConfirmation] = useState('');
   const [liveOpen, setLiveOpen] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [inputLevel] = useState(() => new Animated.Value(0));
   const [replyPulse] = useState(() => new Animated.Value(0));
   const meter = useRef({ updatedAt: 0, level: 0 });
@@ -50,6 +53,7 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
   const live = useRef<Live | null>(null);
   const capturePending = useRef(false);
   const speech = useRef(0);
+  const releasePlayback = useRef<() => void>(undefined);
   const playing = useRef(false);
   const speechStartTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const recordingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -57,35 +61,41 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
   const { stream } = useAudioStream({ sampleRate: 24000, channels: 1, encoding: 'int16', onBuffer });
 
   useEffect(() => {
-    if (!active || liveVoice) return;
+    if (!playbackActive || liveVoice) return;
     let current = true;
     void Speech.getAvailableVoicesAsync().then(voices => {
       if (current) setVoice(voices.find(item => /^uk(?:[-_]|$)/i.test(item.language))?.identifier);
     }).catch(() => {});
     return () => { current = false; };
-  }, [active, liveVoice]);
+  }, [playbackActive, liveVoice]);
 
   function stopSpeech() {
     speech.current++;
     clearTimeout(speechStartTimer.current);
+    releasePlayback.current?.();
+    releasePlayback.current = undefined;
     playing.current = false;
+    setSpeaking(false);
     replyPulse.setValue(0);
     void Speech.stop().catch(() => {});
     if (live.current) setPhase('listening');
   }
 
   function speak(text: string) {
-    if (!voice) {
-      setError('На цьому пристрої немає українського голосу. Відповідь доступна в чаті.');
-      return;
-    }
     const id = ++speech.current;
+    releasePlayback.current?.();
+    releasePlayback.current = undefined;
+    setError('');
     clearTimeout(speechStartTimer.current);
     playing.current = true;
+    setSpeaking(true);
     const done = () => {
       if (id !== speech.current) return;
       clearTimeout(speechStartTimer.current);
+      releasePlayback.current?.();
+      releasePlayback.current = undefined;
       playing.current = false;
+      setSpeaking(false);
       replyPulse.setValue(0);
       if (live.current) setPhase('listening');
     };
@@ -101,22 +111,88 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
         Animated.timing(replyPulse, { toValue: 0, duration: 200, easing: motion.easeOut, useNativeDriver: true, isInteraction: false }),
       ]).start();
     };
-    void Speech.stop().then(() => {
+    const started = () => {
       if (id !== speech.current) return;
+      clearTimeout(speechStartTimer.current);
+      if (live.current) setPhase('speaking');
+      pulse();
+    };
+    function speakOnDevice() {
+      if (id !== speech.current) return;
+      if (!voice) {
+        done();
+        setError('На цьому пристрої немає українського голосу. Відповідь доступна в чаті.');
+        return;
+      }
+      speechStartTimer.current = setTimeout(failed, 5000);
       Speech.speak(text, {
         language: 'uk-UA', voice, rate: 0.95, useApplicationAudioSession: true,
-        onStart: () => {
-          if (id !== speech.current) return;
-          clearTimeout(speechStartTimer.current);
-          if (live.current) setPhase('speaking');
-          pulse();
-        },
+        onStart: started,
         onBoundary: pulse,
         onDone: done, onStopped: done,
         onError: failed,
       });
+    }
+
+    void Speech.stop().then(async () => {
+      if (id !== speech.current) return;
+      if (!piperSpeech || !endpoint) return speakOnDevice();
+
+      const controller = new AbortController();
+      let file: File | undefined;
+      let player: AudioPlayer | undefined;
+      let subscription: ReturnType<AudioPlayer['addListener']> | undefined;
+      const release = () => {
+        controller.abort();
+        subscription?.remove();
+        player?.remove();
+        if (file?.exists) {
+          try { file.delete(); } catch { /* The cache file may already be gone. */ }
+        }
+      };
+      releasePlayback.current = release;
+      const fallback = () => {
+        if (id !== speech.current || controller.signal.aborted) return;
+        clearTimeout(speechStartTimer.current);
+        release();
+        releasePlayback.current = undefined;
+        speakOnDevice();
+      };
+      speechStartTimer.current = setTimeout(fallback, 16000);
+      try {
+        const response = await fetch(endpoint + '/speech', {
+          method: 'POST', signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', ...(token && { Authorization: 'Bearer ' + token }) },
+          body: JSON.stringify({ text }),
+        });
+        if (!response.ok) throw new Error();
+        const wav = await response.arrayBuffer();
+        if (controller.signal.aborted) return;
+        await setAudioModeAsync({ playsInSilentMode: true });
+        if (controller.signal.aborted) return;
+        file = new File(Paths.cache, `assistant-reply-${Date.now()}-${id}.wav`);
+        file.write(new Uint8Array(wav));
+        player = createAudioPlayer(file.uri, { keepAudioSessionActive: Boolean(live.current), updateInterval: 300 });
+        let hasStarted = false;
+        subscription = player.addListener('playbackStatusUpdate', status => {
+          if (controller.signal.aborted) return;
+          if (status.didJustFinish) done();
+          else if (status.playbackState === 'failed') {
+            if (hasStarted) failed();
+            else fallback();
+          } else if (status.playing && status.currentTime > 0) {
+            if (hasStarted) pulse();
+            else {
+              hasStarted = true;
+              started();
+            }
+          }
+        });
+        player.play();
+      } catch {
+        fallback();
+      }
     }).catch(failed);
-    speechStartTimer.current = setTimeout(failed, 5000);
   }
 
   function discardRecording() {
@@ -155,6 +231,10 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
   useEffect(() => {
     if (!active) cancel();
   }, [active]);
+
+  useEffect(() => {
+    if (!playbackActive && playing.current) stopSpeech();
+  }, [playbackActive]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
@@ -258,7 +338,7 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
   async function startLive() {
     if (!active || !endpoint || operation.current || live.current || capturePending.current) return;
     stopSpeech();
-    if (!voice) {
+    if (!voice && !piperSpeech) {
       setError('Для розмови потрібен український голос. Додайте його в налаштуваннях пристрою.');
       return;
     }
@@ -448,7 +528,7 @@ export function useAssistantAudio({ endpoint, token, active, onDraft, onQuestion
   }
 
   return {
-    phase, error, voice, liveOpen, micMuted, inputLevel, replyPulse, confirmation, confirmTranscript, recorder,
+    phase, error, voice, liveOpen, micMuted, speaking, inputLevel, replyPulse, confirmation, confirmTranscript, recorder,
     startRecording, finishRecording, startLive, cancel, toggleMic, speak, stopSpeech,
   };
 }
