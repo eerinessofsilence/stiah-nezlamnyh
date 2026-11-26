@@ -41,7 +41,8 @@ function ContactCard({ contact, featured = false }: { contact: typeof hotline; f
       <GuideText type="support" tone={tone}>{contact.description}</GuideText>
       {contact.details && <GuideText type="support" tone={tone}>{contact.details}</GuideText>}
       {!featured && phoneLink}
-      {contact.email && <ExternalLink url={`mailto:${contact.email}`} label={contact.email} icon={icons.external} copyLabel="Скопіювати email" />}
+      {contact.email && <ExternalLink url={`mailto:${contact.email}`} label={contact.email}
+        accessibilityLabel={`Написати на ${contact.email}`} copyLabel="Скопіювати email" inlineCopy tone={featured ? 'onFeature' : 'accent'} />}
       {source && <ExternalLink url={source[1]} label="Офіційне джерело" accessibilityLabel={`Офіційне джерело: ${contact.title}`}
         tone={featured ? 'onFeature' : 'accent'} icon={icons.external} />}
     </GuidePanel>
